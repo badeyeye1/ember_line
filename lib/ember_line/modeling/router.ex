@@ -1,4 +1,12 @@
 defmodule EmberLine.Modeling.Router do
   @moduledoc "Routes Project and Slice commands to their aggregates. Each slice adds its dispatch here."
   use Commanded.Commands.Router
+
+  alias EmberLine.Modeling.Project
+  alias EmberLine.Modeling.Project.CreateProject
+
+  identify Project, by: :project_id, prefix: "project-"
+
+  # create-project
+  dispatch CreateProject, to: Project
 end
