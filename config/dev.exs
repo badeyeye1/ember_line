@@ -14,6 +14,14 @@ config :ember_line, EmberLine.Repo,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
+# The EventStore for event-sourced streams, in its own database
+config :ember_line, EmberLine.EventStore,
+  username: "postgres",
+  password: "postgres",
+  hostname: "localhost",
+  database: "ember_line_eventstore_dev",
+  pool_size: 10
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #

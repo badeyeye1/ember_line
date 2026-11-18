@@ -10,6 +10,7 @@ defmodule EmberLine.Application do
     children = [
       EmberLineWeb.Telemetry,
       EmberLine.Repo,
+      EmberLine.CommandedApp,
       {Oban, Application.fetch_env!(:ember_line, Oban)},
       {DNSCluster, query: Application.get_env(:ember_line, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: EmberLine.PubSub},

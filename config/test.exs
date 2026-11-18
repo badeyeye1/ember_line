@@ -22,6 +22,13 @@ config :ember_line, EmberLine.Repo,
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2
 
+# Events are kept in memory in tests, so each test starts from a clean store
+config :ember_line, EmberLine.CommandedApp,
+  event_store: [
+    adapter: Commanded.EventStore.Adapters.InMemory,
+    serializer: Commanded.Serialization.JsonSerializer
+  ]
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :ember_line, EmberLineWeb.Endpoint,
