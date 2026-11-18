@@ -1,5 +1,6 @@
 [
   import_deps: [
+    :commanded,
     :oban,
     :ash_authentication_phoenix,
     :ash_authentication,

@@ -70,6 +70,19 @@ config :ember_line,
   generators: [timestamp_type: :utc_datetime],
   ash_domains: [EmberLine.Accounts]
 
+# Event-sourced streams (Project and Slice) live in the EventStore; everything else is Ash on AshPostgres.
+config :ember_line, event_stores: [EmberLine.EventStore]
+
+config :ember_line, EmberLine.CommandedApp,
+  event_store: [
+    adapter: Commanded.EventStore.Adapters.EventStore,
+    event_store: EmberLine.EventStore
+  ],
+  pubsub: :local,
+  registry: :local
+
+config :ember_line, EmberLine.EventStore, serializer: Commanded.Serialization.JsonSerializer
+
 # Configure the endpoint
 config :ember_line, EmberLineWeb.Endpoint,
   url: [host: "localhost"],

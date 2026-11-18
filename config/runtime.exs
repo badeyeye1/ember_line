@@ -41,6 +41,15 @@ if config_env() == :dev do
 end
 
 if config_env() == :prod do
+  config :ember_line, EmberLine.EventStore,
+    url:
+      System.get_env("EVENTSTORE_DATABASE_URL") ||
+        raise("""
+        environment variable EVENTSTORE_DATABASE_URL is missing.
+        For example: ecto://USER:PASS@HOST/ember_line_eventstore
+        """),
+    pool_size: String.to_integer(System.get_env("EVENTSTORE_POOL_SIZE") || "10")
+
   database_url =
     System.get_env("DATABASE_URL") ||
       raise """
