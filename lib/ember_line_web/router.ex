@@ -51,42 +51,33 @@ defmodule EmberLineWeb.Router do
 
     get "/", PageController, :home
 
+    # Auth screens built from docs/design/screens (signin, signup, forgot,
+    # forgot-sent, reset). They post to AshAuthentication's endpoints.
     ash_authentication_live_session :unauthenticated_routes,
       on_mount: [{EmberLineWeb.LiveUserAuth, :live_no_user}] do
+      live "/sign-in", SignInLive
       # Screen: signup (slice register)
       live "/register", SignupLive
+      live "/reset", ForgotLive
+      live "/reset/sent", ForgotSentLive
+      live "/password-reset/:token", ResetLive
     end
 
     auth_routes AuthController, EmberLine.Accounts.User, path: "/auth"
 
+    # AshAuthentication pages Emberline doesn't replace, in the auth shell.
     sign_out_route AuthController, "/sign-out",
+      layout: {EmberLineWeb.AuthLayout, :auth_live},
       overrides: [EmberLineWeb.AuthOverrides, AshAuthentication.Phoenix.Overrides.Default]
 
-    # Remove these if you'd like to use your own authentication views
-    # The signup screen (slice register) replaces the generated register page.
-    sign_in_route reset_path: "/reset",
-                  auth_routes_prefix: "/auth",
-                  on_mount: [{EmberLineWeb.LiveUserAuth, :live_no_user}],
-                  overrides: [
-                    EmberLineWeb.AuthOverrides,
-                    AshAuthentication.Phoenix.Overrides.Default
-                  ]
-
-    # Remove this if you do not want to use the reset password feature
-    reset_route auth_routes_prefix: "/auth",
-                overrides: [
-                  EmberLineWeb.AuthOverrides,
-                  AshAuthentication.Phoenix.Overrides.Default
-                ]
-
-    # Remove this if you do not use the confirmation strategy
     confirm_route EmberLine.Accounts.User, :confirm_new_user,
       auth_routes_prefix: "/auth",
+      layout: {EmberLineWeb.AuthLayout, :auth_live},
       overrides: [EmberLineWeb.AuthOverrides, AshAuthentication.Phoenix.Overrides.Default]
 
-    # Remove this if you do not use the magic link strategy.
     magic_sign_in_route(EmberLine.Accounts.User, :magic_link,
       auth_routes_prefix: "/auth",
+      layout: {EmberLineWeb.AuthLayout, :auth_live},
       overrides: [EmberLineWeb.AuthOverrides, AshAuthentication.Phoenix.Overrides.Default]
     )
   end
