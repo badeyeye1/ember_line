@@ -3,16 +3,18 @@ defmodule EmberLine.Accounts.UserTest do
 
   import Swoosh.TestAssertions
 
+  alias AshAuthentication.Strategy.Password
   alias EmberLine.Accounts.User
 
-  @password "correct horse battery staple"
+  @password "correct horse battery staple 1"
 
   defp register(email) do
     User
-    |> Ash.Changeset.for_create(:register_with_password, %{
+    |> Ash.Changeset.for_create(:register_account, %{
+      full_name: "Ada Lovelace",
       email: email,
       password: @password,
-      password_confirmation: @password
+      terms_accepted: true
     })
     |> Ash.create(authorize?: false)
   end
@@ -42,6 +44,30 @@ defmodule EmberLine.Accounts.UserTest do
                |> Ash.Query.for_read(:sign_in_with_password, %{
                  email: "grace@example.com",
                  password: "not the password"
+               })
+               |> Ash.read(authorize?: false)
+    end
+  end
+
+  describe "password reset" do
+    test "resets the password with a token, without a confirmation field" do
+      {:ok, user} = register("grace@example.com")
+      {:ok, strategy} = AshAuthentication.Info.strategy(User, :password)
+      {:ok, token} = Password.reset_token_for(strategy, user)
+
+      assert {:ok, _user} =
+               user
+               |> Ash.Changeset.for_update(:reset_password_with_token, %{
+                 reset_token: token,
+                 password: "a new password 2"
+               })
+               |> Ash.update(authorize?: false)
+
+      assert {:ok, [_signed_in]} =
+               User
+               |> Ash.Query.for_read(:sign_in_with_password, %{
+                 email: "grace@example.com",
+                 password: "a new password 2"
                })
                |> Ash.read(authorize?: false)
     end
