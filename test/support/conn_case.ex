@@ -17,6 +17,9 @@ defmodule EmberLineWeb.ConnCase do
 
   use ExUnit.CaseTemplate
 
+  alias AshAuthentication.Plug.Helpers, as: AuthHelpers
+  alias EmberLine.Accounts.User
+
   using do
     quote do
       # The default endpoint for testing
@@ -34,5 +37,24 @@ defmodule EmberLineWeb.ConnCase do
   setup tags do
     EmberLine.DataCase.setup_sandbox(tags)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
+  end
+
+  @doc """
+  Creates a user and signs them in on the conn. The user is seeded directly,
+  not registered, so these tests don't depend on the registration rules.
+  """
+  def register_and_sign_in(%{conn: conn}) do
+    user =
+      Ash.Seed.seed!(User, %{email: "member-#{System.unique_integer([:positive])}@example.com"})
+
+    {:ok, token, _claims} = AshAuthentication.Jwt.token_for_user(user)
+    user = Ash.Resource.put_metadata(user, :token, token)
+
+    conn =
+      conn
+      |> Phoenix.ConnTest.init_test_session(%{})
+      |> AuthHelpers.store_in_session(user)
+
+    %{conn: conn, user: user}
   end
 end
