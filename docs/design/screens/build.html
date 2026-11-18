@@ -1,0 +1,89 @@
+<!-- Emberline screen "build" captured from the prototype. Layout and styling reference only; data comes from read models. -->
+
+<aside class="side" aria-label="Navigation">
+  <div class="side-brand"><svg width="26" height="14" viewBox="0 0 30 16" aria-hidden="true"><rect x="1" y="3" width="10" height="10" rx="2.5" fill="var(--cmd-edge)"></rect><rect x="10" y="3" width="10" height="10" rx="2.5" fill="var(--evt-edge)" opacity=".95"></rect><rect x="19" y="3" width="10" height="10" rx="2.5" fill="var(--rm-edge)" opacity=".95"></rect></svg><span>Event-Model<br> <b>Builder</b></span></div><button class="ws-switch" id="wsSwitch" aria-haspopup="menu"><span class="ws-logo">A</span><span><b>Acme</b><small>Team plan</small></span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10l5-5 5 5M7 14l5 5 5-5"></path></svg></button>
+  <label class="side-label pj-switch" for="pjSwitch">Project<select id="pjSwitch" aria-label="Switch project"><option value="pmwltf43axces" selected="">Studio Workshops (sample)</option><option value="pmwltf43b00hk">Table Bookings (example)</option><option disabled="">──────────</option><option value="__new">+ New project…</option><option value="__all">All projects…</option></select></label>
+  <nav class="side-nav main-nav" aria-label="Sections">
+    <button class="nav-item" id="navBoard" aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M9 4v16M15 4v16"></path></svg><span>Board</span></button>
+    <button class="nav-item" id="navBuild" aria-pressed="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.2"></circle><circle cx="6" cy="18" r="2.2"></circle><circle cx="18" cy="18" r="2.2"></circle><path d="M6 8.2v7.6M18 15.8V10a3 3 0 0 0-3-3h-4"></path><path d="M13 5l-2 2 2 2"></path></svg><span>Build</span><span class="nb" id="navBuildCt">5</span></button>
+    <button class="nav-item" id="pjSettingsBtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg><span>Project settings</span></button>
+  </nav>
+  <div class="side-sep"></div>
+  <nav class="side-nav" aria-label="Workspace"><button class="nav-item" id="projectsBtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><span>All projects</span></button><button class="nav-item" id="navInbox" aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 13l2.5-7h11L20 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"></path><path d="M4 13h4l1.5 2.5h5L16 13h4"></path></svg><span>Inbox</span><span class="nb" id="inboxCt">1</span></button>
+    <button class="nav-item" id="navMembers" aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c.6-3.4 3-5.4 6-5.4s5.4 2 6 5.4"></path><circle cx="17" cy="9" r="2.4"></circle><path d="M16 14.6c2.5.2 4.4 1.9 5 5"></path></svg><span>Members</span></button>
+    <button class="nav-item" id="navWsSettings" aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg><span>Workspace settings</span></button></nav>
+  <button class="me-chip" id="meChip" aria-haspopup="menu"><span class="av " style="--c:#4f46e5" title="Alex Rivera · Product lead">AR</span><span><b>Alex Rivera</b><small>alex@acme.dev</small></span></button><p class="side-foot">Prototype · accounts, teammates and projects are simulated in this browser</p>
+</aside>
+<div class="wrap">
+  <header class="top">
+    <div class="crumbs"><span id="crumbProject">Studio Workshops (sample)</span><span class="sep" id="crumbSep">/</span><b id="crumbSection">Build</b></div>
+    <div class="top-right"><div class="collab" id="collabBar"><span id="followNote"></span><div class="presence" id="presence"><span class="av on" style="--c:#4f46e5" title="Alex Rivera · Product lead">AR</span><button class="av on" style="--c:#db2777" data-follow="m-nia" title="Nia Okafor · Join waitlist. Click to follow">NO</button><button class="av on" style="--c:#0d9488" data-follow="m-tomi" title="Tomi Adebayo · Promote from waitlist. Click to follow">TA</button></div>
+    <button class="btn small" id="cmtBtn" title="Comments on this project"><span>Comments</span> <span class="nb" id="cmtCt">2</span></button><button class="btn small primary" id="shareBtn">Share</button></div><span class="pj-current" id="pjCurrent"><small class="persist" title="How this project stores data. Change it in Project settings.">Event sourced</small><small>example/studio-workshops</small></span><span class="pill" id="sourcePill">Sample prototype</span></div>
+  </header>
+  <section class="build" id="buildView" aria-label="Build">
+    <div class="bd-head"><div><h2>Build</h2><p>Send slices to your agent and follow them from branch to merged pull request. Merging marks the slice Done on the board.</p></div>
+      <div class="bd-stats"><div><b>5</b><span>in flight</span></div><div class="warn"><b>2</b><span>need you</span></div><div><b>2</b><span>merged</span></div><div><b>1</b><span>ready to send</span></div></div></div>
+    <div class="bd-top">
+      <section class="ag-card on">
+    <div class="ag-top"><span class="dot-on"></span><h3>Claude Code</h3><span class="pill">Simulated</span></div>
+    <dl class="ag-dl"><dt>Repository</dt><dd><code>example/studio-workshops</code></dd><dt>Branches</dt><dd><code>em/&lt;slice&gt;</code> → <code>main</code></dd>
+      <dt>Can</dt><dd>Read code · push branches · open PRs · write scenario tests</dd><dt>Linked</dt><dd>4 d ago</dd></dl>
+    <div class="row"><label class="chk"><input type="checkbox" id="agSimT" checked="" style=""> Simulate progress</label><button class="btn small danger" id="agUnlink">Unlink</button></div>
+  </section>
+      <section class="ready-card"><h3>Ready to build <small>1 slice that passes the Done checks and isn't in flight</small></h3>
+        <ul class="ready"><li><span class="tag p-state_view">State view</span><b>Attendee list</b><small>Workshop RSVP · 2 scenarios</small><button class="btn small" data-send="attendee-list">Send</button></li></ul>
+          <div class="row"><button class="btn primary" id="sendAll">Send all 1</button><button class="btn" data-send-oc="whos-going">Send “Everyone knows who's going” (1)</button></div>
+      </section>
+    </div>
+    <div class="seg bd-filter" role="group" aria-label="Filter by outcome"><button data-bf="all" aria-pressed="true">All work</button><button data-bf="on-calendar" aria-pressed="false">Workshops get on the calendar and in front of members</button><button data-bf="secure-seat" aria-pressed="false">Members secure a seat</button><button data-bf="no-empty-seats" aria-pressed="false">Freed seats never go to waste</button><button data-bf="whos-going" aria-pressed="false">Everyone knows who's going</button></div>
+    <div class="pr-board"><section class="pr-col c-queued"><header><b>Queued</b><span class="ct">1</span><small>Waiting for the agent</small></header>
+        <article class="pr-card " data-work="wpromote-from-waitlist" tabindex="0" role="button" aria-label="Promote from waitlist">
+    <div class="pr-l1"><span class="tag p-automation">Automation</span></div>
+    <h4>Promote from waitlist</h4>
+    <code class="br">em/promote-from-waitlist</code>
+    <p class="last">Queued by you: “Promote from waitlist” with 3 scenarios</p>
+    <div class="pr-l3"><span class="age">12 min ago</span></div>
+  </article></section><section class="pr-col c-working"><header><b>Agent working</b><span class="ct">1</span><small>Writing code and tests</small></header>
+        <article class="pr-card " data-work="wjoin-waitlist" tabindex="0" role="button" aria-label="Join waitlist">
+    <div class="pr-l1"><span class="tag p-state_change">State change</span></div>
+    <h4>Join waitlist</h4>
+    <code class="br">em/join-waitlist</code>
+    <p class="last">Wrote lib/studio_workshops/waitlist/events/joined_waitlist.ex</p>
+    <div class="pr-l3"><span class="add">+96</span><span class="del">−0</span><span class="age">28 min ago</span></div>
+  </article></section><section class="pr-col c-review"><header><b>In review</b><span class="ct">2</span><small>PR open, checks and review</small></header>
+        <article class="pr-card " data-work="wrsvp-to-workshop" tabindex="0" role="button" aria-label="RSVP to workshop">
+    <div class="pr-l1"><span class="tag p-state_change">State change</span><span class="prn">#236</span><span class="ck run" title="1 running">● 6/7</span></div>
+    <h4>RSVP to workshop</h4>
+    <code class="br">em/rsvp-to-workshop</code>
+    <p class="last">Opened PR #236: “RSVP to workshop” · 5 files</p>
+    <div class="pr-l3"><span class="add">+327</span><span class="del">−21</span><span class="age">2 h ago</span></div>
+  </article><article class="pr-card " data-work="wview-workshop" tabindex="0" role="button" aria-label="View workshop">
+    <div class="pr-l1"><span class="tag p-state_view">State view</span><span class="prn">#231</span><span class="ck ok">✓ 6/6</span></div>
+    <h4>View workshop</h4>
+    <code class="br">em/view-workshop</code>
+    <p class="last">All 6 checks passed</p>
+    <div class="pr-l3"><span class="add">+198</span><span class="del">−9</span><span class="age">8 h ago</span></div>
+  </article></section><section class="pr-col c-changes"><header><b>Needs changes</b><span class="ct">1</span><small>Checks failed or changes requested</small></header>
+        <article class="pr-card needs" data-work="wcancel-rsvp" tabindex="0" role="button" aria-label="Cancel RSVP">
+    <div class="pr-l1"><span class="tag p-state_change">State change</span><span class="prn">#233</span><span class="ck fail" title="1 failing">✕ 1 failing</span></div>
+    <h4>Cancel RSVP</h4>
+    <code class="br">em/cancel-rsvp</code>
+    <p class="last">Moved to Needs changes: a scenario test fails</p>
+    <div class="pr-l3"><span class="add">+174</span><span class="del">−6</span><span class="need">Test failing</span><span class="age">4 h ago</span></div>
+  </article></section><section class="pr-col c-merged"><header><b>Merged</b><span class="ct">2</span><small>On the base branch</small></header>
+        <article class="pr-card " data-work="wbrowse-workshops" tabindex="0" role="button" aria-label="Browse workshops">
+    <div class="pr-l1"><span class="tag p-state_view">State view</span><span class="prn">#219</span><span class="ck ok">✓ 5/5</span></div>
+    <h4>Browse workshops</h4>
+    <code class="br">em/browse-workshops</code>
+    <p class="last">Merged into main</p>
+    <div class="pr-l3"><span class="add">+241</span><span class="del">−18</span><span class="appr">Approved</span><span class="age">2 d ago</span></div>
+  </article><article class="pr-card " data-work="wschedule-workshop" tabindex="0" role="button" aria-label="Schedule workshop">
+    <div class="pr-l1"><span class="tag p-state_change">State change</span><span class="prn">#212</span><span class="ck ok">✓ 6/6</span></div>
+    <h4>Schedule workshop</h4>
+    <code class="br">em/schedule-workshop</code>
+    <p class="last">Merged into main</p>
+    <div class="pr-l3"><span class="add">+286</span><span class="del">−12</span><span class="appr">Approved</span><span class="age">3 d ago</span></div>
+  </article></section></div>
+    </section>
+</div>
+<div class="toasts" aria-live="polite"></div>

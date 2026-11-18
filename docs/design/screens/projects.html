@@ -1,0 +1,53 @@
+<!-- Emberline screen "projects" captured from the prototype. Layout and styling reference only; data comes from read models. -->
+
+<aside class="side" aria-label="Navigation">
+  <div class="side-brand"><svg width="26" height="14" viewBox="0 0 30 16" aria-hidden="true"><rect x="1" y="3" width="10" height="10" rx="2.5" fill="var(--cmd-edge)"></rect><rect x="10" y="3" width="10" height="10" rx="2.5" fill="var(--evt-edge)" opacity=".95"></rect><rect x="19" y="3" width="10" height="10" rx="2.5" fill="var(--rm-edge)" opacity=".95"></rect></svg><span>Event-Model<br> <b>Builder</b></span></div><button class="ws-switch" id="wsSwitch" aria-haspopup="menu"><span class="ws-logo">A</span><span><b>Acme</b><small>Team plan</small></span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10l5-5 5 5M7 14l5 5 5-5"></path></svg></button>
+  <div class="side-sep"></div>
+  <nav class="side-nav" aria-label="Workspace"><button class="nav-item" id="navInbox" aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 13l2.5-7h11L20 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"></path><path d="M4 13h4l1.5 2.5h5L16 13h4"></path></svg><span>Inbox</span></button>
+    <button class="nav-item" id="navMembers" aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c.6-3.4 3-5.4 6-5.4s5.4 2 6 5.4"></path><circle cx="17" cy="9" r="2.4"></circle><path d="M16 14.6c2.5.2 4.4 1.9 5 5"></path></svg><span>Members</span></button>
+    <button class="nav-item" id="navWsSettings" aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg><span>Workspace settings</span></button></nav>
+  <button class="me-chip" id="meChip" aria-haspopup="menu"><span class="av " style="--c:#4f46e5" title="Alex Rivera · Product lead">AR</span><span><b>Alex Rivera</b><small>alex@acme.dev</small></span></button><p class="side-foot">Prototype · accounts, teammates and projects are simulated in this browser</p>
+</aside>
+<div class="wrap">
+  <header class="top">
+    <div class="crumbs"><span id="crumbProject"></span><b id="crumbSection">Projects</b></div>
+    <div class="top-right"></div>
+  </header>
+  <section class="projects" id="projectsView" aria-label="Projects">
+    <div class="pj-head"><h2>Projects</h2><p>A project holds one event model. Start fresh, or point it at an existing codebase so the board starts from what's already built.</p></div>
+    <div class="pj-grid">
+      <form class="pj-new" id="pjForm" novalidate="">
+        <h3>New project</h3>
+        <div class="seg" id="pjSrc" role="group" aria-label="Start from">
+          <button type="button" data-src="new" aria-pressed="true">Start fresh</button>
+          <button type="button" data-src="local" aria-pressed="false">Codebase on this computer</button>
+          <button type="button" data-src="github" aria-pressed="false">GitHub repository</button>
+        </div>
+        <label>Project name<input id="pjName" placeholder="e.g. Edgemastery" autocomplete="off" style=""></label>
+        <label>What it is (optional)<textarea id="pjDesc" rows="2" placeholder="One line on what the app does" style=""></textarea></label>
+        <label>Stack<select id="pjStack"><option>Elixir: Phoenix LiveView + Ash + AshCommanded</option><option>Elixir: Phoenix LiveView + Ash</option><option>Elixir: Phoenix LiveView + Ash + Commanded</option><option>Elixir: Phoenix LiveView + Ash + Commanded + Hologram</option><option>Elixir: Phoenix LiveView + Ash + Commanded + Elm</option><option>Elixir: Phoenix LiveView + Commanded</option><option>Other</option></select></label>
+        <label>How it stores data<select id="pjPersist"><option value="event_sourced">Event sourced: events are the source of truth</option><option value="state_stored">State stored (CRUD): tables hold current state; events are the changes</option><option value="mixed">Mixed: choose per stream later</option></select>
+          <span class="hint" style="font-weight:400">Event Modeling works either way. Existing codebases are usually state stored.</span></label>
+        <div class="row"><button class="btn primary" type="submit">Create project</button><button class="btn" type="button" id="pjSample">Open the sample project</button></div>
+      </form>
+      <div class="pj-list" id="pjList"><article class="pj-card ">
+      <h3>Studio Workshops (sample)</h3>
+      <p style="margin:0">Hosts schedule workshops; members RSVP, cancel or join a waitlist.</p>
+      <div class="meta"><span><code>example/studio-workshops</code> · main</span><span>Elixir: Phoenix LiveView + Ash + AshCommanded</span><span>8 slices · 3 screens</span><span>Updated 11/18/2026, 8:24:08 AM</span><span>Code read 11/13/2026</span></div>
+      <div class="progress" title="2 done, 5 in progress, 1 planned"><b>2/8</b><span>done</span>
+    <div class="bar"><i class="d" style="width:25%"></i><i class="p" style="width:62.5%"></i></div>
+    <small>5 in progress · 1 planned</small></div>
+      <div class="row"><button class="btn primary" data-open="pmwltf43axces">Open</button><button class="btn danger" data-del="pmwltf43axces">Delete</button></div>
+    </article><article class="pj-card ">
+      <h3>Table Bookings (example)</h3>
+      <p style="margin:0">A Rails booking app read from its code; the model was recovered from its screens.</p>
+      <div class="meta"><span><code>~/code/table-bookings</code></span><span>Other</span><span>4 slices · 3 screens</span><span>Updated 11/17/2026, 6:44:08 AM</span><span>Code read 11/16/2026</span></div>
+      <div class="progress" title="1 done, 2 in progress, 1 planned"><b>1/4</b><span>done</span>
+    <div class="bar"><i class="d" style="width:25%"></i><i class="p" style="width:50%"></i></div>
+    <small>2 in progress · 1 planned</small></div>
+      <div class="row"><button class="btn primary" data-open="pmwltf43b00hk">Open</button><button class="btn danger" data-del="pmwltf43b00hk">Delete</button></div>
+    </article></div>
+    </div>
+  </section>
+</div>
+<div class="toasts" aria-live="polite"><div class="toast"><p>Signed in as <b>Alex Rivera</b>.</p></div></div>

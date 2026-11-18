@@ -62,11 +62,22 @@ lib/ember_line_web/live/  # one LiveView per screen in the model
 test/ember_line/modeling/ # one test file per slice, written from its scenarios
 ```
 
+## Screens look like the prototype
+
+- `docs/design/` is the visual spec: a desktop and phone PNG plus the markup for every screen in the model, the
+  design tokens and the prototype's CSS. Read `docs/design/README.md` before building any screen.
+- A slice's screen is done only when it matches `docs/design/screens/<screen>.*`: same layout, components, spacing,
+  colours and copy. Generic generator forms (`<.simple_form>`, unstyled `<.input>`, the default Phoenix pages) don't count.
+- Use the shared components in `lib/ember_line_web/components/ui.ex` and the theme in `assets/css/app.css`. Add a
+  component there rather than styling one screen by hand. Don't add colours that aren't in `docs/design/tokens.css`.
+- Each pull request with a screen includes screenshots at 1440 and 390 px wide next to the reference.
+
 ## Working on a slice
 
 1. Read the slice in `docs/model.json`: its command, events, read model, screen and scenarios.
 2. Turn each Given/When/Then scenario into a test before writing any code: Given = earlier events, When = the command, Then = the new events or the error.
 3. Build only that slice: command, aggregate handling, event, projection or read model, screen, and its router entry.
+   Build the screen from `docs/design/screens/<screen>.*` using the shared UI components.
 4. Run `mix format`, `mix compile --warnings-as-errors`, `mix credo --strict` and `mix test`. All must pass.
 5. Check the work against `check-pr-skill.md`, then open a pull request that names the slice and lists its scenarios.
 
