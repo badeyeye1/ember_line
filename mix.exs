@@ -106,6 +106,7 @@ defmodule EmberLine.MixProject do
         "assets.build",
         "run priv/repo/seeds.exs"
       ],
+      "event_store.setup": ["event_store.create", "event_store.init"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ash.setup --quiet", "test"],
