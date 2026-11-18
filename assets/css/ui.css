@@ -277,6 +277,9 @@
   .ui-mini-em .e { background: var(--evt); }
   .ui-mini-em .r { background: var(--rm); }
   :root[data-theme="dark"] .ui-mini-em span { color: #fff; }
+  /* The dark accent is a light purple; white text on it is ~2.9:1. Deepen the
+     panel with the dark accent-soft so the copy passes WCAG AA (~6:1). */
+  :root[data-theme="dark"] .ui-auth-side { background: color-mix(in srgb, var(--accent) 50%, var(--accent-soft)); }
   @media (max-width: 900px) {
     .ui-auth { grid-template-columns: 1fr; }
     .ui-auth-side { display: none; }
