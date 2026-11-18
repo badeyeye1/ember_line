@@ -93,21 +93,8 @@
 }
 
 /* Emberline design tokens: docs/design/tokens.css. The variables switch with
-   the theme (data-theme on <html>); Tailwind reads them through @theme. */
-@font-face {
-  font-family: "Geist";
-  src: url("/fonts/Geist-Variable.woff2") format("woff2");
-  font-weight: 100 900;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Geist Mono";
-  src: url("/fonts/GeistMono-Variable.woff2") format("woff2");
-  font-weight: 100 900;
-  font-display: swap;
-}
-
+   the theme (data-theme on <html>); Tailwind reads them through @theme.
+   Geist and Geist Mono load from Google Fonts (root.html.heex). */
 :root {
   --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f1f3f6; --line: #e4e7ec; --fg: #101828; --muted: #667085;
   --accent: #4f46e5; --accent-fg: #ffffff; --accent-soft: #eef0ff;

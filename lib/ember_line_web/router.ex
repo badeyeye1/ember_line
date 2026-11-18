@@ -12,9 +12,11 @@ defmodule EmberLineWeb.Router do
     plug :put_root_layout, html: {EmberLineWeb.Layouts, :root}
     plug :protect_from_forgery
 
+    # Fonts come from Google Fonts: the stylesheet from fonts.googleapis.com,
+    # the font files from fonts.gstatic.com.
     plug :put_secure_browser_headers, %{
       "content-security-policy" =>
-        "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+        "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
     }
 
     plug :load_from_session
