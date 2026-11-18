@@ -140,6 +140,9 @@
   .ui-switch input:disabled + i { opacity: .5; }
   .ui-switch input:focus-visible + i { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent); }
 
+  /* a sub-section of a form, marked with the accent on the left */
+  .ui-sub { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding-left: 10px; }
+
   /* notification matrix rows */
   .ui-nrow { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 64px); gap: 8px; align-items: center; padding: 9px 18px;
     border-bottom: 1px solid var(--line); font-size: 13px; }
@@ -155,6 +158,12 @@
     font: 500 12.5px var(--font-sans); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
   .ui-seg button:hover, .ui-seg a:hover { color: var(--fg); }
   .ui-seg [aria-pressed="true"], .ui-seg [aria-selected="true"] { background: var(--surface); color: var(--fg); box-shadow: var(--shadow-sm); }
+  /* segmented radio group (a form field) */
+  .ui-seg label { display: inline-flex; cursor: pointer; }
+  .ui-seg label span { color: var(--muted); border-radius: 6px; padding: 5px 11px; font: 500 12.5px var(--font-sans); }
+  .ui-seg label:hover span { color: var(--fg); }
+  .ui-seg input:checked + span { background: var(--surface); color: var(--fg); box-shadow: var(--shadow-sm); }
+  .ui-seg input:focus-visible + span { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent); }
   .ui-seg .ct { font-family: var(--font-mono); font-size: 11px; padding: 0 6px; border-radius: 999px; background: var(--surface-2); }
 
   /* ---------- chips, badges, tags ---------- */

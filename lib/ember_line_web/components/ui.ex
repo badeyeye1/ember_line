@@ -56,7 +56,12 @@ defmodule EmberLineWeb.UI do
     <aside class="ui-side" aria-label="Navigation">
       <a href="/" class="ui-side-brand"><.brand_mark /><span>Emberline</span></a>
 
-      <button :if={@workspace} type="button" class="ui-ws-switch" aria-haspopup="menu">
+      <button
+        :if={@workspace && @workspace[:name]}
+        type="button"
+        class="ui-ws-switch"
+        aria-haspopup="menu"
+      >
         <span class="ui-ws-logo">{initial(@workspace.name)}</span>
         <span><b>{@workspace.name}</b><small :if={@workspace[:plan]}>{@workspace.plan}</small></span>
         <svg
@@ -527,6 +532,41 @@ defmodule EmberLineWeb.UI do
         </button>
       <% end %>
     </div>
+    """
+  end
+
+  @doc """
+  A segmented choice that is a form field: radio buttons styled as the
+  prototype's segmented control.
+  """
+  attr :field, Phoenix.HTML.FormField, required: true
+  attr :label, :string, required: true, doc: "accessible name of the group"
+  attr :options, :list, required: true, doc: "list of {label, value}"
+
+  def segmented(assigns) do
+    ~H"""
+    <div class="ui-seg" role="radiogroup" aria-label={@label}>
+      <label :for={{label, value} <- @options}>
+        <input
+          type="radio"
+          name={@field.name}
+          value={value}
+          checked={to_string(@field.value) == value}
+          class="sr-only"
+        />
+        <span>{label}</span>
+      </label>
+    </div>
+    """
+  end
+
+  @doc "A sub-section of a form, marked with the accent on the left."
+  attr :rest, :global
+  slot :inner_block, required: true
+
+  def subsection(assigns) do
+    ~H"""
+    <div class="ui-sub" {@rest}>{render_slot(@inner_block)}</div>
     """
   end
 

@@ -16,6 +16,11 @@ defmodule EmberLineWeb.ProjectsLiveTest do
     view |> form("#new-project-form", project: params) |> render_submit()
   end
 
+  # The repository fields appear once "GitHub repository" is chosen.
+  defp choose_github(view) do
+    view |> form("#new-project-form", project: %{source_type: "github"}) |> render_change()
+  end
+
   test "signed-out visitors are sent to sign in", %{workspace: workspace} do
     assert {:error, {:redirect, %{to: "/sign-in"}}} =
              live(build_conn(), ~p"/workspaces/#{workspace}/projects")
@@ -49,6 +54,7 @@ defmodule EmberLineWeb.ProjectsLiveTest do
 
   test "GitHub project with branch", ctx do
     {:ok, view, _html} = live(ctx.conn, path(ctx))
+    choose_github(view)
 
     submit(view, %{
       name: "Billing API",
@@ -72,6 +78,7 @@ defmodule EmberLineWeb.ProjectsLiveTest do
 
   test "GitHub source without a repository URL", ctx do
     {:ok, view, _html} = live(ctx.conn, path(ctx))
+    choose_github(view)
 
     submit(view, %{name: "Billing API", source_type: "github", repo_url: ""})
 
