@@ -12,6 +12,10 @@ defmodule EmberLine.MixProject do
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
+      # CVE-2026-117656 is in assent's Sign in with Apple strategy, which we don't use.
+      # It is fixed in assent 0.3.2, but ash_authentication 4.15 pins assent < 0.3.
+      # Remove this once ash_authentication allows assent >= 0.3.2.
+      hex: [ignore_advisories: ["CVE-2026-117656"]],
       consolidate_protocols: Mix.env() != :dev
     ]
   end
@@ -44,6 +48,8 @@ defmodule EmberLine.MixProject do
       {:bcrypt_elixir, "~> 3.0"},
       {:picosat_elixir, "~> 0.2"},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:sobelow, "~> 0.14", only: [:dev, :test], runtime: false},
       {:oban, "~> 2.0"},
       {:commanded, "~> 1.4"},
       {:commanded_eventstore_adapter, "~> 1.4"},

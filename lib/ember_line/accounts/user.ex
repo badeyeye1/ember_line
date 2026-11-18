@@ -1,4 +1,5 @@
 defmodule EmberLine.Accounts.User do
+  @moduledoc "A user account. Signs in with a password or a magic link."
   use Ash.Resource,
     otp_app: :ember_line,
     domain: EmberLine.Accounts,

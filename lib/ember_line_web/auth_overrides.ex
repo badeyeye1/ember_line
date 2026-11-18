@@ -1,4 +1,5 @@
 defmodule EmberLineWeb.AuthOverrides do
+  @moduledoc "UI overrides for the AshAuthentication.Phoenix sign-in components."
   use AshAuthentication.Phoenix.Overrides
 
   # configure your UI overrides here
