@@ -43,6 +43,9 @@ defmodule EmberLineWeb.Router do
 
       # Screen: projects (slices create-project, view-projects)
       live "/workspaces/:workspace_id/projects", ProjectsLive
+
+      # Screen: account-notifications (slice set-notif-pref)
+      live "/account/notifications", AccountNotificationsLive
     end
   end
 

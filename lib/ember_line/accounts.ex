@@ -4,6 +4,7 @@ defmodule EmberLine.Accounts do
     otp_app: :ember_line
 
   resources do
+    resource EmberLine.Accounts.NotificationPreference
     resource EmberLine.Accounts.Token
     resource EmberLine.Accounts.User
   end
