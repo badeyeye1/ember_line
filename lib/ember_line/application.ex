@@ -11,6 +11,7 @@ defmodule EmberLine.Application do
       EmberLineWeb.Telemetry,
       EmberLine.Repo,
       EmberLine.CommandedApp,
+      EmberLine.Modeling.Projections.ProjectListProjection,
       {Oban, Application.fetch_env!(:ember_line, Oban)},
       {DNSCluster, query: Application.get_env(:ember_line, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: EmberLine.PubSub},
