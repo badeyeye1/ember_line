@@ -1,4 +1,5 @@
 defmodule EmberLine.Accounts.Token do
+  @moduledoc "Auth tokens issued by AshAuthentication for EmberLine.Accounts.User."
   use Ash.Resource,
     otp_app: :ember_line,
     domain: EmberLine.Accounts,

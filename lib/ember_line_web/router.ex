@@ -11,7 +11,12 @@ defmodule EmberLineWeb.Router do
     plug :fetch_live_flash
     plug :put_root_layout, html: {EmberLineWeb.Layouts, :root}
     plug :protect_from_forgery
-    plug :put_secure_browser_headers
+
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" =>
+        "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+    }
+
     plug :load_from_session
   end
 
@@ -90,8 +95,21 @@ defmodule EmberLineWeb.Router do
     # as long as you are also using SSL (which you should anyway).
     import Phoenix.LiveDashboard.Router
 
+    # LiveDashboard and the mailbox preview use inline scripts and styles, so these
+    # dev-only routes get a looser Content-Security-Policy than the browser pipeline.
+    pipeline :dev_tools do
+      plug :accepts, ["html"]
+      plug :fetch_session
+      plug :protect_from_forgery
+
+      plug :put_secure_browser_headers, %{
+        "content-security-policy" =>
+          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+      }
+    end
+
     scope "/dev" do
-      pipe_through :browser
+      pipe_through :dev_tools
 
       live_dashboard "/dashboard", metrics: EmberLineWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview

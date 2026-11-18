@@ -109,12 +109,15 @@ config :phoenix_live_view,
 # at the `config/runtime.exs`.
 config :ember_line, EmberLine.Mailer, adapter: Swoosh.Adapters.Local
 
+# Sender for auth emails (confirmation, password reset, magic link). Replace before going live.
+config :ember_line, :mail_from, {"noreply", "noreply@example.com"}
+
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.25.4",
   ember_line: [
     args:
-      ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
+      ~w(js/app.js js/theme.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]

@@ -1,4 +1,5 @@
 defmodule EmberLine.Secrets do
+  @moduledoc "Supplies secrets to AshAuthentication, such as the token signing secret."
   use AshAuthentication.Secret
 
   def secret_for(
