@@ -40,6 +40,9 @@ defmodule EmberLineWeb.Router do
       #
       # If an authenticated user must *not* be present:
       # on_mount {EmberLineWeb.LiveUserAuth, :live_no_user}
+
+      # Screen: account-notifications (slice set-notif-pref)
+      live "/account/notifications", AccountNotificationsLive
     end
   end
 
