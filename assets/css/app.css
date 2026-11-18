@@ -4,6 +4,8 @@
 @import "tailwindcss" source(none);
 @source "../../deps/ash_authentication_phoenix";
 @import "phoenix-colocated/ember_line/colocated.css";
+/* Emberline components (lib/ember_line_web/components/ui.ex) */
+@import "./ui.css";
 @source "../css";
 @source "../js";
 @source "../../lib/ember_line_web";
@@ -19,77 +21,148 @@
   themes: false;
 }
 
-/* daisyUI theme plugin.
-  We ship with two themes, a light one inspired on Phoenix colors and a dark one inspired
-  on Elixir colors. Build your own at: https://daisyui.com/theme-generator/ */
-@plugin "daisyui/packages/bundle/daisyui-theme" {
-  name: "dark";
-  default: false;
-  prefersdark: true;
-  color-scheme: "dark";
-  --color-base-100: oklch(30.33% 0.016 252.42);
-  --color-base-200: oklch(25.26% 0.014 253.1);
-  --color-base-300: oklch(20.15% 0.012 254.09);
-  --color-base-content: oklch(97.807% 0.029 256.847);
-  --color-primary: oklch(58% 0.233 277.117);
-  --color-primary-content: oklch(96% 0.018 272.314);
-  --color-secondary: oklch(58% 0.233 277.117);
-  --color-secondary-content: oklch(96% 0.018 272.314);
-  --color-accent: oklch(60% 0.25 292.717);
-  --color-accent-content: oklch(96% 0.016 293.756);
-  --color-neutral: oklch(37% 0.044 257.287);
-  --color-neutral-content: oklch(98% 0.003 247.858);
-  --color-info: oklch(58% 0.158 241.966);
-  --color-info-content: oklch(97% 0.013 236.62);
-  --color-success: oklch(60% 0.118 184.704);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
-  --radius-selector: 0.25rem;
-  --radius-field: 0.25rem;
-  --radius-box: 0.5rem;
-  --size-selector: 0.21875rem;
-  --size-field: 0.21875rem;
-  --border: 1.5px;
-  --depth: 1;
-  --noise: 0;
-}
-
+/* daisyUI light and dark themes, built from docs/design/tokens.css. */
 @plugin "daisyui/packages/bundle/daisyui-theme" {
   name: "light";
   default: true;
   prefersdark: false;
   color-scheme: "light";
-  --color-base-100: oklch(98% 0 0);
-  --color-base-200: oklch(96% 0.001 286.375);
-  --color-base-300: oklch(92% 0.004 286.32);
-  --color-base-content: oklch(21% 0.006 285.885);
-  --color-primary: oklch(70% 0.213 47.604);
-  --color-primary-content: oklch(98% 0.016 73.684);
-  --color-secondary: oklch(55% 0.027 264.364);
-  --color-secondary-content: oklch(98% 0.002 247.839);
-  --color-accent: oklch(0% 0 0);
-  --color-accent-content: oklch(100% 0 0);
-  --color-neutral: oklch(44% 0.017 285.786);
-  --color-neutral-content: oklch(98% 0 0);
-  --color-info: oklch(62% 0.214 259.815);
-  --color-info-content: oklch(97% 0.014 254.604);
-  --color-success: oklch(70% 0.14 182.503);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
-  --radius-selector: 0.25rem;
-  --radius-field: 0.25rem;
-  --radius-box: 0.5rem;
-  --size-selector: 0.21875rem;
-  --size-field: 0.21875rem;
-  --border: 1.5px;
-  --depth: 1;
+  --color-base-100: #ffffff;
+  --color-base-200: #f6f7f9;
+  --color-base-300: #f1f3f6;
+  --color-base-content: #101828;
+  --color-primary: #4f46e5;
+  --color-primary-content: #ffffff;
+  --color-secondary: #eef0ff;
+  --color-secondary-content: #4f46e5;
+  --color-accent: #4f46e5;
+  --color-accent-content: #ffffff;
+  --color-neutral: #101828;
+  --color-neutral-content: #ffffff;
+  --color-info: #3b82f6;
+  --color-info-content: #0b3d91;
+  --color-success: #22c55e;
+  --color-success-content: #17521c;
+  --color-warning: #f59e0b;
+  --color-warning-content: #6b3400;
+  --color-error: #dc2626;
+  --color-error-content: #ffffff;
+  --radius-selector: 0.375rem;
+  --radius-field: 0.5625rem;
+  --radius-box: 0.75rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
   --noise: 0;
+}
+
+@plugin "daisyui/packages/bundle/daisyui-theme" {
+  name: "dark";
+  default: false;
+  prefersdark: true;
+  color-scheme: "dark";
+  --color-base-100: #12151c;
+  --color-base-200: #0b0d12;
+  --color-base-300: #1a1e27;
+  --color-base-content: #e6e8ee;
+  --color-primary: #818cf8;
+  --color-primary-content: #0b0d12;
+  --color-secondary: #1e1f3a;
+  --color-secondary-content: #818cf8;
+  --color-accent: #818cf8;
+  --color-accent-content: #0b0d12;
+  --color-neutral: #e6e8ee;
+  --color-neutral-content: #0b0d12;
+  --color-info: #4f8ff7;
+  --color-info-content: #d3e5ff;
+  --color-success: #34c759;
+  --color-success-content: #caf5b4;
+  --color-warning: #f59e0b;
+  --color-warning-content: #ffd9a3;
+  --color-error: #ff8a80;
+  --color-error-content: #0b0d12;
+  --radius-selector: 0.375rem;
+  --radius-field: 0.5625rem;
+  --radius-box: 0.75rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+/* Emberline design tokens: docs/design/tokens.css. The variables switch with
+   the theme (data-theme on <html>); Tailwind reads them through @theme. */
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f1f3f6; --line: #e4e7ec; --fg: #101828; --muted: #667085;
+  --accent: #4f46e5; --accent-fg: #ffffff; --accent-soft: #eef0ff;
+  --shadow-sm: 0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.04);
+  --shadow-md: 0 4px 12px rgba(16,24,40,.08), 0 1px 3px rgba(16,24,40,.06);
+  --side-w: 244px;
+  --cmd: #bcd9ff; --cmd-ink: #0b3d91; --cmd-edge: #3b82f6;
+  --evt: #ffc77a; --evt-ink: #6b3400; --evt-edge: #f59e0b;
+  --rm: #b9eca0;  --rm-ink: #17521c;  --rm-edge: #22c55e;
+  --proj: #b6ebe6; --proj-ink: #0b4f4a; --proj-edge: #14b8a6;
+  --auto: #dccaff; --auto-ink: #4c1d95; --auto-edge: #8b5cf6;
+  --edge: #fff09a; --edge-ink: #5e4a00; --edge-edge: #eab308;
+  --err: #dc2626; --err-bg: #ffd9d6; --err-edge: #ef4444;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0b0d12; --surface: #12151c; --surface-2: #1a1e27; --line: #262b36; --fg: #e6e8ee; --muted: #98a2b3;
+  --accent: #818cf8; --accent-fg: #0b0d12; --accent-soft: #1e1f3a;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4); --shadow-md: 0 6px 18px rgba(0,0,0,.45);
+  --cmd: #1d3b73; --cmd-ink: #d3e5ff; --cmd-edge: #4f8ff7;
+  --evt: #6e3f06; --evt-ink: #ffd9a3; --evt-edge: #f59e0b;
+  --rm: #1c5226;  --rm-ink: #caf5b4;  --rm-edge: #34c759;
+  --proj: #134e4a; --proj-ink: #c5f3ee; --proj-edge: #2dd4bf;
+  --auto: #41297a; --auto-ink: #e6d9ff; --auto-edge: #9b72f7;
+  --edge: #55470a; --edge-ink: #fff2a6; --edge-edge: #eab308;
+  --err: #ff8a80; --err-bg: #521f1c; --err-edge: #f05252;
+}
+
+/* Only the tokens are colours: Tailwind's default palette is switched off. */
+@theme inline {
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+  --color-white: #ffffff;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-cmd: var(--cmd); --color-cmd-ink: var(--cmd-ink); --color-cmd-edge: var(--cmd-edge);
+  --color-evt: var(--evt); --color-evt-ink: var(--evt-ink); --color-evt-edge: var(--evt-edge);
+  --color-rm: var(--rm); --color-rm-ink: var(--rm-ink); --color-rm-edge: var(--rm-edge);
+  --color-proj: var(--proj); --color-proj-ink: var(--proj-ink); --color-proj-edge: var(--proj-edge);
+  --color-auto: var(--auto); --color-auto-ink: var(--auto-ink); --color-auto-edge: var(--auto-edge);
+  --color-edge: var(--edge); --color-edge-ink: var(--edge-ink); --color-edge-edge: var(--edge-edge);
+  --color-err: var(--err); --color-err-bg: var(--err-bg); --color-err-edge: var(--err-edge);
+  --font-sans: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
 }
 
 /* Add variants based on LiveView classes */
@@ -104,3 +177,4 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+
