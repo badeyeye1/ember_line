@@ -1,0 +1,11 @@
+---
+name: elixir_make
+version: 0.10.1
+scm: hex
+repo: hexpm
+type: mix
+license: other
+licenses:
+- sources: README.md
+  text: Same as Elixir.
+notices: []

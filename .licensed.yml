@@ -1,0 +1,28 @@
+# Dependency license check (github/licensed). CI runs `licensed status`.
+# After adding or updating deps, run `licensed cache` and commit .licenses/.
+name: ember_line
+sources:
+  mix: true
+
+allowed:
+  - mit
+  - apache-2.0
+  - bsd-2-clause
+  - bsd-3-clause
+  - isc
+
+# Checked by hand: licensed can't classify these from their files (license text it
+# can't match, or no license file in the package). License as declared upstream.
+reviewed:
+  mix:
+    - ash_authentication          # MIT (hex metadata; LICENSES/ directory)
+    - ash_authentication_phoenix  # MIT (hex metadata; LICENSES/ directory)
+    - bcrypt_elixir               # BSD-3-Clause, ISC and BSD-4-Clause (original bcrypt C code)
+    - comeonin                    # BSD-3-Clause (hex metadata)
+    - daisyui                     # MIT (sparse git checkout, license file not fetched)
+    - elixir_make                 # Apache-2.0 (hex metadata, no license file in package)
+    - file_system                 # Apache-2.0 (hex metadata, no license file in package)
+    - heroicons                   # MIT (sparse git checkout, license file not fetched)
+    - phoenix_live_reload         # MIT (hex metadata, no license file in package)
+    - swoosh                      # MIT (hex metadata; LICENSE.txt)
+    - yaml_elixir                 # MIT (hex metadata, no license file in package)

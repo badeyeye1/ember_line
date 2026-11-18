@@ -1,0 +1,11 @@
+---
+name: phoenix_live_reload
+version: 1.7.0
+scm: hex
+repo: hexpm
+type: mix
+license: other
+licenses:
+- sources: README.md
+  text: "[Same license as Phoenix](https://github.com/phoenixframework/phoenix/blob/master/LICENSE.md)."
+notices: []
