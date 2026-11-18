@@ -1,0 +1,100 @@
+<!-- Emberline screen "comments" captured from the prototype. Layout and styling reference only; data comes from read models. -->
+
+<aside class="side" aria-label="Navigation">
+  <div class="side-brand"><svg width="26" height="14" viewBox="0 0 30 16" aria-hidden="true"><rect x="1" y="3" width="10" height="10" rx="2.5" fill="var(--cmd-edge)"></rect><rect x="10" y="3" width="10" height="10" rx="2.5" fill="var(--evt-edge)" opacity=".95"></rect><rect x="19" y="3" width="10" height="10" rx="2.5" fill="var(--rm-edge)" opacity=".95"></rect></svg><span>Event-Model<br> <b>Builder</b></span></div><button class="ws-switch" id="wsSwitch" aria-haspopup="menu"><span class="ws-logo">A</span><span><b>Acme</b><small>Team plan</small></span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10l5-5 5 5M7 14l5 5 5-5"></path></svg></button>
+  <label class="side-label pj-switch" for="pjSwitch">Project<select id="pjSwitch" aria-label="Switch project"><option value="pmwltf43axces" selected="">Studio Workshops (sample)</option><option value="pmwltf43b00hk">Table Bookings (example)</option><option disabled="">──────────</option><option value="__new">+ New project…</option><option value="__all">All projects…</option></select></label>
+  <nav class="side-nav main-nav" aria-label="Sections">
+    <button class="nav-item" id="navBoard" aria-pressed="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M9 4v16M15 4v16"></path></svg><span>Board</span></button>
+    <button class="nav-item" id="navBuild" aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.2"></circle><circle cx="6" cy="18" r="2.2"></circle><circle cx="18" cy="18" r="2.2"></circle><path d="M6 8.2v7.6M18 15.8V10a3 3 0 0 0-3-3h-4"></path><path d="M13 5l-2 2 2 2"></path></svg><span>Build</span><span class="nb" id="navBuildCt">5</span></button>
+    <button class="nav-item" id="pjSettingsBtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg><span>Project settings</span></button>
+  </nav>
+  <div class="side-sep"></div>
+  <nav class="side-nav" aria-label="Workspace"><button class="nav-item" id="projectsBtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><span>All projects</span></button><button class="nav-item" id="navInbox" aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 13l2.5-7h11L20 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"></path><path d="M4 13h4l1.5 2.5h5L16 13h4"></path></svg><span>Inbox</span><span class="nb" id="inboxCt">1</span></button>
+    <button class="nav-item" id="navMembers" aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c.6-3.4 3-5.4 6-5.4s5.4 2 6 5.4"></path><circle cx="17" cy="9" r="2.4"></circle><path d="M16 14.6c2.5.2 4.4 1.9 5 5"></path></svg><span>Members</span></button>
+    <button class="nav-item" id="navWsSettings" aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg><span>Workspace settings</span></button></nav>
+  <div class="side-legend legend" aria-label="Legend">
+    <b>Legend</b>
+    <span><i class="sw c"></i>Command</span><span><i class="sw e"></i>Event</span><span><i class="sw p"></i>Projection</span>
+    <span><i class="sw r"></i>Read model</span><span><i class="sw a"></i>Automation</span><span><i class="sw x"></i>Error</span>
+  </div>
+  <button class="me-chip" id="meChip" aria-haspopup="menu"><span class="av " style="--c:#4f46e5" title="Alex Rivera · Product lead">AR</span><span><b>Alex Rivera</b><small>alex@acme.dev</small></span></button><p class="side-foot">Prototype · accounts, teammates and projects are simulated in this browser</p>
+</aside>
+<div class="wrap">
+  <header class="top">
+    <div class="crumbs"><span id="crumbProject">Studio Workshops (sample)</span><span class="sep" id="crumbSep">/</span><b id="crumbSection">Schedule workshop</b></div>
+    <div class="top-right"><div class="collab" id="collabBar"><span id="followNote"></span><div class="presence" id="presence"><span class="av on" style="--c:#4f46e5" title="Alex Rivera · Product lead">AR</span><button class="av on" style="--c:#db2777" data-follow="m-nia" title="Nia Okafor · Join waitlist. Click to follow">NO</button><button class="av on" style="--c:#0d9488" data-follow="m-tomi" title="Tomi Adebayo · Promote from waitlist. Click to follow">TA</button></div>
+    <button class="btn small" id="cmtBtn" title="Comments on this project"><span>Comments</span> <span class="nb" id="cmtCt">2</span></button><button class="btn small primary" id="shareBtn">Share</button></div><span class="pj-current" id="pjCurrent"><small class="persist" title="How this project stores data. Change it in Project settings.">Event sourced</small><small>example/studio-workshops</small></span><span class="pill" id="sourcePill">Sample prototype</span></div>
+  </header>
+  <section class="screen-band">
+    <div class="screen-col">
+      <div class="screen-frame">
+        <div class="bar"><i></i><i></i><i></i><span id="screenLabel">No prototype yet</span></div>
+        <div class="screen-view" id="screenView"><div class="nomatch" style="min-height:160px">Drop the prototype above to see its screens here.</div></div>
+      </div>
+    </div>
+  </section>
+  <nav class="detail-bar" id="detailBar" aria-label="Slice">
+    <button class="btn" id="backBtn">← Back to the board</button>
+    <div class="dt"><span class="n">Slice 1 of 8 · on New workshop</span><h2>Schedule workshop <span class="tag p-state_change">State change</span></h2></div>
+    <div class="status-box">
+    <label for="statusSel">Status</label>
+    <select id="statusSel"><option value="planned">Planned</option><option value="in_progress">In progress</option><option value="done" selected="">Done</option></select>
+    <details class="checks"><summary>Ready to mark Done</summary>
+      <ul><li class="ok">✓ Has a command</li><li class="ok">✓ Emits at least one event</li><li class="ok">✓ Has a happy-path scenario</li><li class="ok">✓ Has an error scenario</li><li class="ok">✓ Names what's on the screen</li><li class="ok">✓ Belongs to a business outcome</li></ul></details>
+  </div>
+    <button class="btn db-chip" id="dbToggle" aria-controls="detailBuild" aria-expanded="false"><span class="dot merged"></span>Build · Merged · PR #212 <span class="ck ok">✓ 6/6</span></button>
+    <div class="row"><button class="btn" id="dPrev" disabled="">← Previous slice</button><button class="btn" id="dNext">Next slice →</button></div>
+    <div class="row edit-row"><button class="btn " id="dEdit" aria-pressed="false">Edit this slice</button></div><div class="collab-row"><span class="lbl">Owner</span><button class="chipbtn " id="ownerBtn" aria-haspopup="menu"><span class="av sm" style="--c:#4f46e5" title="Alex Rivera · Product lead">AR</span>Alex Rivera</button>
+    <span class="lbl">Spec</span><button class="chipbtn noav" id="reviewBtn" aria-haspopup="menu">Request review</button>
+    <button class="chipbtn noav" id="discBtn">Discussion <span class="badge acc">1</span></button>
+    </div></nav>
+  <div id="modelView" class="model-view">
+    <div class="board-wrap"><div class="em" id="em" style="grid-template-columns: 132px repeat(1, 210px);"><svg id="arrows" class="arrows" aria-hidden="true" width="342" height="627" viewBox="0 0 342 627"><defs>
+    <marker id="ah" class="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z"></path></marker>
+    <marker id="ahOn" class="ah-on" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z"></path></marker></defs><path class="edge on" d="M236.5,268.6875 L236.5,304.21875" marker-end="url(#ahOn)"></path><path class="edge on" d="M236.5,341.40625 L236.5,390.484375" marker-end="url(#ahOn)"></path></svg><div class="lane-label">Timeline →</div><div class="em-cell em-head p-state_change sel" role="button" tabindex="0" data-i="0"><span class="n">Step 1</span><h3>Schedule workshop</h3><span class="on-screen">on New workshop</span><span class="tag p-state_change">State change</span><span class="st st-done">✓ Done</span><div class="cmeta"><span class="av sm" style="--c:#4f46e5" title="Alex Rivera · Product lead">AR</span></div></div><div class="lane-label"><i class="dot u"></i>Host</div><div class="em-cell sel"><div class="wf" id="n-0-ui" data-type="u"><div class="wb"><i></i><i></i><i></i></div><div class="wc"><span class="t">New workshop</span><span class="ln"></span><span class="ln s"></span><span class="hl">Schedule workshop button</span></div></div></div><div class="lane-label" title="What someone asks the system to do"><i class="dot c"></i><span>Commands<small>What someone asks the system to do</small></span></div><div class="em-cell sel"><div class="sticky c" id="n-0-cmd" data-type="c"><div class="nm">Schedule workshop</div><button class="cbadge" data-ck="schedule-workshop|cmd" title="1 open comment" aria-label="1 open comments"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path></svg>1</button></div></div><div class="lane-label" title="Facts that happened, kept for good"><i class="dot e"></i><span>Events<small>Facts that happened, kept for good</small></span></div><div class="em-cell sel"><div class="sticky e" id="n-0-ev-WorkshopScheduled" data-type="e"><div class="nm">Workshop scheduled</div></div></div><div class="lane-label" title="Turn events into what a screen needs"><i class="dot p"></i><span>Projections<small>Turn events into what a screen needs</small></span></div><div class="em-cell sel"></div><div class="lane-label" title="The data a screen shows, ready to display"><i class="dot r"></i><span>Read models<small>The data a screen shows, ready to display</small></span></div><div class="em-cell sel"></div><div class="cursors" aria-hidden="true"></div></div></div>
+  </div>
+  <section class="narr" id="narr" aria-live="polite">
+    <div class="narr-cols">
+      <div><h4>For the business</h4><p class="story ">A host fills in the form to put a new workshop on the calendar.</p>
+        <div class="biz-outcomes"><div class="biz-oc"><div class="biz-head"><span class="lbl">Business outcome</span><b>Workshops get on the calendar and in front of members</b></div>
+      <p class="biz-span">3 slices across 3 screens: New workshop, Workshop list, Workshop RSVP · <b>2 of 3 done</b></p>
+      <ol class="biz-steps"><li class="here"><span>Schedule workshop</span><small>this slice</small> <span class="st st-done">✓ Done</span></li><li class=""><button class="linkbtn" data-goslice="1">Browse workshops</button><small>Workshop list</small> <span class="st st-done">✓ Done</span></li><li class=""><button class="linkbtn" data-goslice="2">View workshop</button><small>Workshop RSVP</small> <span class="st st-in_progress">In progress</span></li></ol>
+      <button class="btn" data-outcome="on-calendar">Show this outcome on the board</button></div></div></div>
+      <div><h4>For engineers</h4><dl class="eng"><dt>Screen</dt><dd><span class="chip n">New workshop</span></dd><dt>Code</dt><dd><span class="chip n">style: event_sourced</span><span class="chip n">command: ScheduleWorkshop</span><span class="chip n">aggregate: Workshop</span></dd><dt>Trigger</dt><dd><span class="chip n">Schedule workshop button</span></dd><dt>Command</dt><dd><span class="chip c">ScheduleWorkshop(title: string, startsAt: utc_datetime, room: string, capacity: integer)</span></dd><dt>Emits</dt><dd><span class="chip e">WorkshopScheduled(workshopId: uuid, title: string, startsAt: utc_datetime, room: string, capacity: integer)</span></dd><dt>Rejects</dt><dd><span class="chip x">StartsInPast</span><span class="chip x">InvalidCapacity</span><span class="chip x">RoomAlreadyBooked</span></dd><dt>Streams</dt><dd><span class="chip n">Workshop</span></dd><dt>Built with</dt><dd><span class="chip n">LiveView</span></dd><dt>Storage</dt><dd><span class="chip n">Event sourced: events are the source of truth</span></dd></dl></div>
+    </div></section>
+  <section class="specs" id="specs" aria-live="polite">
+    <div class="specs-head"><div><h2>Scenarios · Schedule workshop</h2><p>State change · 4 scenarios · Given / When / Then</p></div>
+      <div class="row"><button class="btn" id="copySpecs">Copy shown as Gherkin</button></div></div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Which slices">
+        <button data-scope="slice" aria-pressed="true">This slice</button>
+      </div>
+      <div class="seg" role="group" aria-label="Scenario type">
+        <button data-k="all" aria-pressed="true">All scenarios<span class="ct">4</span></button><button data-k="success" aria-pressed="false">Happy path<span class="ct">1</span></button><button data-k="error" aria-pressed="false">Errors<span class="ct">2</span></button><button data-k="empty" aria-pressed="false">Empty state<span class="ct">0</span></button><button data-k="edge" aria-pressed="false">Edge cases<span class="ct">1</span></button>
+      </div>
+    </div>
+    <div class="spec-grid">
+      <article class="spec k-success" data-shot="0:0" tabindex="0" role="button" aria-label="Show Valid workshop on the screen"><header><h3>Valid workshop</h3><span class="kind">Happy path</span></header>
+        <dl class="gwt"><dt>Given</dt><dd><span class="none">nothing has happened</span></dd><dt>When</dt><dd><span class="chip c">ScheduleWorkshop(title: Intro to Pottery Wheel, capacity: 20)</span></dd><dt>Then</dt><dd><span class="chip e">WorkshopScheduled(capacity: 20)</span></dd></dl>
+      </article>
+      <article class="spec k-error" data-shot="0:1" tabindex="0" role="button" aria-label="Show Date in the past on the screen"><header><h3>Date in the past</h3><span class="kind">Errors</span></header>
+        <dl class="gwt"><dt>Given</dt><dd><span class="none">nothing has happened</span></dd><dt>When</dt><dd><span class="chip c">ScheduleWorkshop(startsAt: yesterday)</span></dd><dt>Then</dt><dd><span class="chip x">error: StartsInPast</span></dd></dl>
+      </article>
+      <article class="spec k-error" data-shot="0:2" tabindex="0" role="button" aria-label="Show No seats on the screen"><header><h3>No seats</h3><span class="kind">Errors</span></header>
+        <dl class="gwt"><dt>Given</dt><dd><span class="none">nothing has happened</span></dd><dt>When</dt><dd><span class="chip c">ScheduleWorkshop(capacity: 0)</span></dd><dt>Then</dt><dd><span class="chip x">error: InvalidCapacity</span></dd></dl>
+      </article>
+      <article class="spec k-edge" data-shot="0:3" tabindex="0" role="button" aria-label="Show Room already booked on the screen"><header><h3>Room already booked</h3><span class="kind">Edge cases</span></header>
+        <dl class="gwt"><dt>Given</dt><dd><span class="chip e">WorkshopScheduled(room: Studio B, startsAt: Sat 10:00)</span></dd><dt>When</dt><dd><span class="chip c">ScheduleWorkshop(room: Studio B, startsAt: Sat 10:00)</span></dd><dt>Then</dt><dd><span class="chip x">error: RoomAlreadyBooked</span></dd></dl>
+      </article></div></section>
+</div>
+<div class="toasts" aria-live="polite"></div><aside class="cdrawer open" id="collabDrawer" aria-label="Discussion"><header class="cd-head"><div><h3>Discussion</h3><small>Schedule workshop · step 1</small></div><button class="btn small" id="cdClose">Close</button></header>
+    <div class="cd-tools"><div class="seg" role="group" aria-label="Scope"><button data-scope="slice" aria-pressed="true">This slice</button></div>
+      <div class="seg" role="group" aria-label="Show"><button data-tab="open" aria-pressed="true">Open<span class="ct">1</span></button><button data-tab="resolved" aria-pressed="false">Resolved<span class="ct">0</span></button><button data-tab="mine" aria-pressed="false">For me<span class="ct">0</span></button><button data-tab="activity" aria-pressed="false">Activity</button></div>
+      <button class="btn small" id="cdNew" style="margin-left:auto">New comment</button></div>
+    <div class="cd-body"><article class="th open" data-th="t-wtn7h4e"><button class="th-target" data-go="schedule-workshop"><i class="dot c"></i><b>Schedule workshop</b><span>· Command · ScheduleWorkshop</span></button>
+    <div class="cm"><span class="av sm" style="--c:#0d9488" title="Tomi Adebayo · Engineer">TA</span><span class="who"><b>Tomi Adebayo</b><small>3 h ago</small></span><p>What happens if ScheduleWorkshop arrives twice, say from a double click? I'd make it idempotent.</p>
+        <div class="sugg"><span class="lbl">Suggested scenario · edge</span><b style="font-size:13px">Sent twice</b><dl><dt>Given</dt><dd>WorkshopScheduled(…)</dd><dt>When</dt><dd>ScheduleWorkshop(the same request again)</dd><dt>Then</dt><dd>nothing new: already recorded</dd></dl>
+          <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn small primary" data-apply="c-qrnefyy">Add this scenario</button><button class="btn small" data-dismiss="c-qrnefyy">Dismiss</button></div></div></div><div class="cm"><span class="av sm" style="--c:#db2777" title="Nia Okafor · Product lead">NO</span><span class="who"><b>Nia Okafor</b><small>3 h ago</small></span><p>Agreed. Members do double-tap on mobile.</p>
+        </div>
+    <form class="reply" data-reply="t-wtn7h4e"><textarea class="ta" rows="1" data-keep="t-wtn7h4e" placeholder="Reply… @ to mention" style=""></textarea>
+      <div class="row"><button class="btn small" type="button" data-res="t-wtn7h4e">Resolve</button><button class="btn small primary" type="submit">Reply</button></div></form></article></div></aside>

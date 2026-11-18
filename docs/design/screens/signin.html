@@ -1,0 +1,22 @@
+<!-- Emberline screen "signin" captured from the prototype. Layout and styling reference only; data comes from read models. -->
+
+<div class="auth" id="authView"><div class="auth-main"><div class="auth-brand"><svg width="30" height="16" viewBox="0 0 30 16" aria-hidden="true"><rect x="1" y="3" width="10" height="10" rx="2.5" fill="var(--cmd-edge)"></rect><rect x="10" y="3" width="10" height="10" rx="2.5" fill="var(--evt-edge)"></rect><rect x="19" y="3" width="10" height="10" rx="2.5" fill="var(--rm-edge)"></rect></svg><span>Event-Model <b>Builder</b></span></div><div class="auth-card">
+    <h1>Sign in</h1><p class="sub">Welcome back. Sign in to your workspace.</p>
+    <div class="oauth"><button class="btn wide" id="aGh"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"></path></svg> Continue with GitHub</button><button class="btn wide" id="aGo"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.8 3.2-7.9z"></path><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.7c-1 .7-2.2 1.1-3.7 1.1-2.9 0-5.3-1.9-6.2-4.5H2.1v2.8A11 11 0 0 0 12 23z"></path><path fill="#FBBC05" d="M5.8 14.2a6.6 6.6 0 0 1 0-4.3V7.1H2.1a11 11 0 0 0 0 9.9z"></path><path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A11 11 0 0 0 2.1 7.1l3.7 2.8C6.7 7.3 9.1 5.4 12 5.4z"></path></svg> Continue with Google</button></div>
+    <div class="or">or with email</div>
+    <form id="aForm" novalidate="">
+      <label class="fld" for="aEmail">Work email<input class="in" id="aEmail" type="email" autocomplete="email" value="alex@acme.dev" style=""></label>
+      <label class="fld" for="aPw">Password<span class="pwrow"><input class="in" id="aPw" type="password" autocomplete="current-password" style=""><button type="button" data-peek="aPw">Show</button></span></label>
+      <div class="inrow" style="justify-content:space-between;align-items:center"><label class="chk"><input type="checkbox" id="aKeep" checked="" style=""> Keep me signed in</label><a href="#forgot">Forgot password?</a></div>
+      <button class="btn primary wide" type="submit">Sign in</button>
+    </form>
+    <p class="demo-note">Prototype: sign in as <code>alex@acme.dev</code> with <code>demo1234</code>, or use either button above. Nothing leaves this browser.</p>
+    <p class="auth-foot"><a href="#sso">Sign in with SSO</a> · New here? <a href="#signup">Create an account</a></p></div></div><aside class="auth-side" aria-hidden="true">
+  <h2>Model the system together, before anyone writes the code.</h2>
+  <div class="mini-em"><span class="c">BookOfficeHours</span><span class="c cur2">ScheduleCall</span><span class="x"></span><span class="c">CancelBooking</span>
+    <span class="e">OfficeHoursBooked</span><span class="e">CallScheduled</span><span class="e">SlotOpened</span><span class="e">BookingCancelled</span>
+    <span class="x"></span><span class="r">LiveSessions</span><span class="x"></span><span class="r">MyBookings</span></div>
+  <ul><li><i>1</i><span>Drop in a clickable prototype. Get every screen as commands, events and read models.</span></li>
+    <li><i>2</i><span>Spec it as a team: comment on any sticky, suggest scenarios, review and sign off each slice.</span></li>
+    <li><i>3</i><span>Send ready slices to your coding agent and follow each one to a merged pull request.</span></li></ul>
+</aside></div>

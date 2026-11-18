@@ -44,10 +44,13 @@ defmodule EmberLineWeb.AccountNotificationsLiveTest do
   test "Slack not connected", %{conn: conn, user: user} do
     {:ok, view, _html} = live(conn, ~p"/account/notifications")
 
-    view |> element("#pref-mention-slack") |> render_click()
+    # Slack can't be connected yet, so its column is disabled (as in the
+    # reference); the rule itself is tested in set_notif_pref_test.exs.
+    for kind <- ~w(mention review reply comment agent digest) do
+      assert has_element?(view, "#pref-#{kind}-slack[disabled]")
+    end
 
-    assert render(view) =~ "Connect Slack to your workspace first."
-    refute has_element?(view, "#pref-mention-slack[checked]")
+    assert render(view) =~ "Slack needs the Slack integration."
     assert Ash.read!(NotificationPreference, actor: user) == []
   end
 end

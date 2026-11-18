@@ -84,8 +84,10 @@ defmodule EmberLineWeb do
 
       # HTML escaping functionality
       import Phoenix.HTML
-      # Core UI components
-      import EmberLineWeb.CoreComponents
+      # Emberline's components (docs/design): build screens from these
+      import EmberLineWeb.UI
+      # Phoenix's generated components, only for icons
+      import EmberLineWeb.CoreComponents, only: [icon: 1]
 
       # Common modules used in templates
       alias EmberLineWeb.Layouts

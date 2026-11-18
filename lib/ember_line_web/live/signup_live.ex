@@ -39,8 +39,9 @@ defmodule EmberLineWeb.SignupLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
-      <.header>Create your account</.header>
+    <Layouts.auth flash={@flash}>
+      <h1>Create your account</h1>
+      <p class="sub">Free for up to 3 people. No card needed.</p>
 
       <.form
         for={@form}
@@ -51,22 +52,33 @@ defmodule EmberLineWeb.SignupLive do
         phx-submit="create"
         phx-trigger-action={@trigger_action}
       >
-        <.input field={@form[:full_name]} label="Full name" autocomplete="name" />
-        <.input field={@form[:email]} type="email" label="Work email" autocomplete="email" />
-        <.input
+        <.field field={@form[:full_name]} label="Full name" autocomplete="name" />
+        <.field
+          field={@form[:email]}
+          type="email"
+          label="Work email"
+          autocomplete="email"
+          placeholder="name@company.com"
+        />
+        <.field
           field={@form[:password]}
           type="password"
           label="Password"
           autocomplete="new-password"
+          hint="At least 8 characters, with a letter and a number."
         />
-        <.input field={@form[:terms_accepted]} type="checkbox" label="I agree to the terms" />
-        <.button variant="primary" phx-disable-with="Creating account…">Create account</.button>
+        <.checkbox field={@form[:terms_accepted]}>
+          I agree to the Terms of Service and Privacy Policy.
+        </.checkbox>
+        <.button variant="primary" wide type="submit" phx-disable-with="Creating account…">
+          Create account
+        </.button>
       </.form>
 
-      <p class="text-sm">
-        Already have an account? <.link navigate={~p"/sign-in"} class="link">Sign in</.link>
+      <p class="ui-auth-foot">
+        Already have an account? <.link navigate={~p"/sign-in"}>Sign in</.link>
       </p>
-    </Layouts.app>
+    </Layouts.auth>
     """
   end
 end

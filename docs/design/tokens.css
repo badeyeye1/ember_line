@@ -1,0 +1,36 @@
+/* Emberline design tokens, taken from the prototype (docs/design/prototype.css). These are the values that win
+   in the prototype's cascade. Port them into assets/css/app.css as the app's theme; don't invent new colours. */
+:root {
+  /* Surfaces and text */
+  --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f1f3f6; --line: #e4e7ec; --fg: #101828; --muted: #667085;
+  --accent: #4f46e5; --accent-fg: #ffffff; --accent-soft: #eef0ff;
+  --shadow-sm: 0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.04);
+  --shadow-md: 0 4px 12px rgba(16,24,40,.08), 0 1px 3px rgba(16,24,40,.06);
+  /* Type: Geist and Geist Mono, 14px body, slight negative tracking on headings */
+  --display: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --body: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --side-w: 244px;
+  /* Event Modeling sticky colours: command blue, event orange, read model green, projection teal,
+     automation purple, edge-case yellow, error red. Background, ink (text) and edge (border) for each. */
+  --cmd: #bcd9ff; --cmd-ink: #0b3d91; --cmd-edge: #3b82f6;
+  --evt: #ffc77a; --evt-ink: #6b3400; --evt-edge: #f59e0b;
+  --rm: #b9eca0;  --rm-ink: #17521c;  --rm-edge: #22c55e;
+  --proj: #b6ebe6; --proj-ink: #0b4f4a; --proj-edge: #14b8a6;
+  --auto: #dccaff; --auto-ink: #4c1d95; --auto-edge: #8b5cf6;
+  --edge: #fff09a; --edge-ink: #5e4a00; --edge-edge: #eab308;
+  --err: #dc2626; --err-bg: #ffd9d6; --err-edge: #ef4444;
+}
+/* Dark theme */
+:root[data-theme="dark"] {
+  --bg: #0b0d12; --surface: #12151c; --surface-2: #1a1e27; --line: #262b36; --fg: #e6e8ee; --muted: #98a2b3;
+  --accent: #818cf8; --accent-fg: #0b0d12; --accent-soft: #1e1f3a;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4); --shadow-md: 0 6px 18px rgba(0,0,0,.45);
+  --cmd: #1d3b73; --cmd-ink: #d3e5ff; --cmd-edge: #4f8ff7;
+  --evt: #6e3f06; --evt-ink: #ffd9a3; --evt-edge: #f59e0b;
+  --rm: #1c5226;  --rm-ink: #caf5b4;  --rm-edge: #34c759;
+  --proj: #134e4a; --proj-ink: #c5f3ee; --proj-edge: #2dd4bf;
+  --auto: #41297a; --auto-ink: #e6d9ff; --auto-edge: #9b72f7;
+  --edge: #55470a; --edge-ink: #fff2a6; --edge-edge: #eab308;
+  --err: #ff8a80; --err-bg: #521f1c; --err-edge: #f05252;
+}

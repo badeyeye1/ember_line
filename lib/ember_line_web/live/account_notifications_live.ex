@@ -4,8 +4,9 @@ defmodule EmberLineWeb.AccountNotificationsLive do
   (slice set-notif-pref). Each toggle saves straight away.
 
   Shows the member's saved choices; anything not saved yet shows as off.
-  Labels, defaults and the Slack column's availability belong to the
-  view-notif-prefs slice.
+  Defaults and the Slack column's availability belong to the view-notif-prefs
+  slice; until Slack can be connected, its column is disabled, as in the
+  reference.
   """
   use EmberLineWeb, :live_view
 
@@ -13,8 +14,17 @@ defmodule EmberLineWeb.AccountNotificationsLive do
 
   on_mount {EmberLineWeb.LiveUserAuth, :live_user_required}
 
-  @kinds ~w(mention review reply comment agent digest)
-  @channels [{"app", "In app"}, {"email", "Email"}, {"slack", "Slack"}]
+  # Labels and descriptions from docs/design/screens/account-notifications.html.
+  @kinds [
+    {"mention", "Mentions", "Someone @mentions you"},
+    {"review", "Review requests",
+     "Someone asks you to review a slice's spec, or answers your request"},
+    {"reply", "Replies", "Someone replies in a thread you're in"},
+    {"comment", "Comments on your slices", "New comments on slices you own"},
+    {"agent", "Build updates", "Your agent opens a pull request or a check fails"},
+    {"digest", "Weekly digest", "A Monday summary of what changed in your projects"}
+  ]
+  @channels [{"app", "In-app"}, {"email", "Email"}, {"slack", "Slack"}]
   @channel_values %{"app" => :app, "email" => :email, "slack" => :slack}
 
   @messages %{
@@ -67,35 +77,39 @@ defmodule EmberLineWeb.AccountNotificationsLive do
     assigns = assign(assigns, kinds: @kinds, channels: @channels)
 
     ~H"""
-    <Layouts.app flash={@flash}>
-      <.header>Notifications</.header>
-      <p :if={@error} class="alert alert-error" role="alert">{@error}</p>
-
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Notify me about</th>
-            <th :for={{_channel, label} <- @channels}>{label}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr :for={kind <- @kinds} id={"kind-#{kind}"}>
-            <td>{String.capitalize(kind)}</td>
-            <td :for={{channel, label} <- @channels}>
-              <input
-                type="checkbox"
-                class="toggle"
-                id={"pref-#{kind}-#{channel}"}
-                aria-label={"#{String.capitalize(kind)}: #{label}"}
-                checked={Map.get(@choices, {kind, channel}, false)}
-                phx-click="toggle"
-                phx-value-kind={kind}
-                phx-value-channel={channel}
-              />
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <Layouts.app flash={@flash} current_user={@current_user} crumbs={[{"Notifications", nil}]}>
+      <section class="ui-page" aria-label="Account">
+        <.page_header title="Notifications" description="Choose what reaches you, and where." />
+        <div class="ui-pg">
+          <.settings_nav current={:account_notifications} />
+          <div class="ui-pg-main">
+            <.notice :if={@error} tone="err">{@error}</.notice>
+            <.card title="Notify me about">
+              <:header_text>
+                In-app notifications appear in your Inbox. Slack needs the Slack integration.
+              </:header_text>
+              <div class="mt-2">
+                <div class="ui-nrow h">
+                  <span></span><span :for={{_channel, label} <- @channels}>{label}</span>
+                </div>
+                <div :for={{kind, label, description} <- @kinds} class="ui-nrow" id={"kind-#{kind}"}>
+                  <span><b>{label}</b><small>{description}</small></span>
+                  <.switch
+                    :for={{channel, channel_label} <- @channels}
+                    id={"pref-#{kind}-#{channel}"}
+                    label={"#{label}: #{channel_label}"}
+                    checked={Map.get(@choices, {kind, channel}, false)}
+                    disabled={channel == "slack"}
+                    phx-click="toggle"
+                    phx-value-kind={kind}
+                    phx-value-channel={channel}
+                  />
+                </div>
+              </div>
+            </.card>
+          </div>
+        </div>
+      </section>
     </Layouts.app>
     """
   end
