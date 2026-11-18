@@ -39,18 +39,16 @@ defmodule EmberLineWeb.ConnCase do
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 
-  @doc "Registers a user with a password and signs them in on the conn."
+  @doc """
+  Creates a user and signs them in on the conn. The user is seeded directly,
+  not registered, so these tests don't depend on the registration rules.
+  """
   def register_and_sign_in(%{conn: conn}) do
-    password = "correct horse battery staple"
-
     user =
-      User
-      |> Ash.Changeset.for_create(:register_with_password, %{
-        email: "member-#{System.unique_integer([:positive])}@example.com",
-        password: password,
-        password_confirmation: password
-      })
-      |> Ash.create!(authorize?: false)
+      Ash.Seed.seed!(User, %{email: "member-#{System.unique_integer([:positive])}@example.com"})
+
+    {:ok, token, _claims} = AshAuthentication.Jwt.token_for_user(user)
+    user = Ash.Resource.put_metadata(user, :token, token)
 
     conn =
       conn
