@@ -68,7 +68,8 @@ config :spark,
 config :ember_line,
   ecto_repos: [EmberLine.Repo],
   generators: [timestamp_type: :utc_datetime],
-  ash_domains: [EmberLine.Accounts]
+  ash_domains: [EmberLine.Accounts],
+  ash_authentication: [return_error_on_invalid_magic_link_token?: true]
 
 # Event-sourced streams (Project and Slice) live in the EventStore; everything else is Ash on AshPostgres.
 config :ember_line, event_stores: [EmberLine.EventStore]
