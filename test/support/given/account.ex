@@ -4,17 +4,16 @@ defmodule EmberLine.Given.Account do
   alias EmberLine.Accounts.NotificationPreference
   alias EmberLine.Accounts.User
 
-  @doc "A registered account to act as."
+  @doc """
+  An account to act as, with a sign-in token. Seeded directly, not
+  registered, so other slices' tests don't depend on the registration rules.
+  """
   def account do
-    password = "correct horse battery staple"
+    user =
+      Ash.Seed.seed!(User, %{email: "member-#{System.unique_integer([:positive])}@example.com"})
 
-    User
-    |> Ash.Changeset.for_create(:register_with_password, %{
-      email: "member-#{System.unique_integer([:positive])}@example.com",
-      password: password,
-      password_confirmation: password
-    })
-    |> Ash.create!(authorize?: false)
+    {:ok, token, _claims} = AshAuthentication.Jwt.token_for_user(user)
+    Ash.Resource.put_metadata(user, :token, token)
   end
 
   # Given NotificationPreferenceChanged(accountId, kind, channel, enabled)

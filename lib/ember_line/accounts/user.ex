@@ -7,6 +7,8 @@ defmodule EmberLine.Accounts.User do
     authorizers: [Ash.Policy.Authorizer],
     extensions: [AshAuthentication]
 
+  alias EmberLine.Accounts.Validations
+
   authentication do
     add_ons do
       log_out_everywhere do
@@ -36,6 +38,10 @@ defmodule EmberLine.Accounts.User do
       password :password do
         identity_field :email
         hash_provider AshAuthentication.BcryptProvider
+        # Command RegisterAccount (slice register): the model's form has no
+        # password confirmation field.
+        register_action_name :register_account
+        confirmation_required? false
 
         resettable do
           sender EmberLine.Accounts.User.Senders.SendPasswordResetEmail
@@ -146,8 +152,10 @@ defmodule EmberLine.Accounts.User do
       end
     end
 
-    create :register_with_password do
-      description "Register a new user with a email and password."
+    # Command RegisterAccount → event AccountRegistered (slice register).
+    create :register_account do
+      description "Register a new account with a name, email and password."
+      accept [:full_name]
 
       argument :email, :ci_string do
         allow_nil? false
@@ -156,18 +164,21 @@ defmodule EmberLine.Accounts.User do
       argument :password, :string do
         description "The proposed password for the user, in plain text."
         allow_nil? false
-        constraints min_length: 8
         sensitive? true
       end
 
-      argument :password_confirmation, :string do
-        description "The proposed password for the user (again), in plain text."
-        allow_nil? false
-        sensitive? true
-      end
+      argument :terms_accepted, :boolean, default: false
+
+      validate Validations.FullNameGiven
+      validate Validations.WorkEmail
+      validate Validations.EmailHasNoAccount
+      validate Validations.StrongPassword
+      validate Validations.TermsAccepted
 
       # Sets the email from the argument
       change set_attribute(:email, arg(:email))
+      change set_attribute(:registered_at, &DateTime.utc_now/0)
+      change EmberLine.Accounts.Changes.PickAvatarColor
 
       # Hashes the provided password
       change AshAuthentication.Strategy.Password.HashPasswordChange
@@ -175,8 +186,22 @@ defmodule EmberLine.Accounts.User do
       # Generates an authentication token for the user
       change AshAuthentication.GenerateTokenChange
 
-      # validates that the password matches the confirmation
-      validate AshAuthentication.Strategy.Password.PasswordConfirmationValidation
+      change {EmberLine.Changes.RecordEvent,
+              type: "AccountRegistered",
+              stream: "Account",
+              stream_id: :id,
+              fields: [
+                {"accountId", :id},
+                {"fullName", :full_name},
+                {"email", :email},
+                {"verified", &__MODULE__.verified?/1},
+                {"registeredAt", :registered_at},
+                {"avatarColor", :avatar_color}
+              ]}
+
+      # The unique index is the guarantee when two sign-ups race; say it in
+      # the same words as the EmailHasNoAccount check.
+      error_handler &Validations.EmailHasNoAccount.handle_identity_error/2
 
       metadata :token, :string do
         description "A JWT that can be used to authenticate the user."
@@ -213,9 +238,11 @@ defmodule EmberLine.Accounts.User do
         sensitive? true
       end
 
+      # Optional: the password strategy has confirmation_required? false since
+      # slice register, so the reset form no longer sends it.
       argument :password_confirmation, :string do
         description "The proposed password for the user (again), in plain text."
-        allow_nil? false
+        allow_nil? true
         sensitive? true
       end
 
@@ -288,9 +315,17 @@ defmodule EmberLine.Accounts.User do
     end
 
     attribute :confirmed_at, :utc_datetime_usec
+
+    # Added by slice register. Nullable: accounts created before it have none.
+    attribute :full_name, :string, public?: true
+    attribute :avatar_color, :string, public?: true
+    attribute :registered_at, :utc_datetime_usec, public?: true
   end
 
   identities do
     identity :unique_email, [:email]
   end
+
+  @doc "AccountRegistered.verified: the email has been confirmed."
+  def verified?(user), do: not is_nil(user.confirmed_at)
 end

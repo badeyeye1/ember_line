@@ -53,14 +53,21 @@ defmodule EmberLineWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+
+    ash_authentication_live_session :unauthenticated_routes,
+      on_mount: [{EmberLineWeb.LiveUserAuth, :live_no_user}] do
+      # Screen: signup (slice register)
+      live "/register", SignupLive
+    end
+
     auth_routes AuthController, EmberLine.Accounts.User, path: "/auth"
 
     sign_out_route AuthController, "/sign-out",
       overrides: [EmberLineWeb.AuthOverrides, AshAuthentication.Phoenix.Overrides.Default]
 
     # Remove these if you'd like to use your own authentication views
-    sign_in_route register_path: "/register",
-                  reset_path: "/reset",
+    # The signup screen (slice register) replaces the generated register page.
+    sign_in_route reset_path: "/reset",
                   auth_routes_prefix: "/auth",
                   on_mount: [{EmberLineWeb.LiveUserAuth, :live_no_user}],
                   overrides: [
