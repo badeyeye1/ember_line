@@ -2,7 +2,7 @@
   "format": "event-model",
   "version": 1,
   "generator": "Event-Model Builder (prototype)",
-  "exportedAt": "2026-11-18T01:30:33.694Z",
+  "exportedAt": "2026-11-18T06:00:19.683Z",
   "project": {
     "id": "pmwldlygxbto7",
     "name": "EmberLine",
@@ -2214,7 +2214,9 @@
             "branch: string",
             "stack: string",
             "persistenceMode: enum(event_sourced|state_stored|mixed)",
-            "createdAt: utc_datetime"
+            "createdAt: utc_datetime",
+            "createdBy: uuid",
+            "workspaceId: uuid"
           ]
         },
         {
@@ -2249,7 +2251,9 @@
           "persistenceMode: enum(event_sourced|state_stored|mixed)",
           "sourceType: enum(new|local|github)",
           "isSample: boolean",
-          "createdAt: utc_datetime"
+          "createdAt: utc_datetime",
+          "createdById: uuid",
+          "workspaceId: uuid"
         ]
       },
       "specs": [
@@ -2331,7 +2335,9 @@
           "repoUrl: string",
           "branch: string",
           "stack: string",
-          "persistenceMode: enum(event_sourced|state_stored|mixed)"
+          "persistenceMode: enum(event_sourced|state_stored|mixed)",
+          "createdBy: uuid",
+          "workspaceId: uuid"
         ]
       },
       "produces": [
@@ -2347,7 +2353,9 @@
             "branch: string",
             "stack: string",
             "persistenceMode: enum(event_sourced|state_stored|mixed)",
-            "createdAt: utc_datetime"
+            "createdAt: utc_datetime",
+            "createdBy: uuid",
+            "workspaceId: uuid"
           ]
         }
       ],
@@ -12008,7 +12016,9 @@
           "persistenceMode: enum(event_sourced|state_stored|mixed)",
           "sourceType: enum(new|local|github)",
           "isSample: boolean",
-          "createdAt: utc_datetime"
+          "createdAt: utc_datetime",
+          "createdById: uuid",
+          "workspaceId: uuid"
         ],
         "column": 16,
         "step": 17,
@@ -12057,7 +12067,9 @@
           "branch: string",
           "stack: string",
           "persistenceMode: enum(event_sourced|state_stored|mixed)",
-          "createdAt: utc_datetime"
+          "createdAt: utc_datetime",
+          "createdBy: uuid",
+          "workspaceId: uuid"
         ],
         "column": 17,
         "step": 18,
@@ -12093,7 +12105,9 @@
           "repoUrl: string",
           "branch: string",
           "stack: string",
-          "persistenceMode: enum(event_sourced|state_stored|mixed)"
+          "persistenceMode: enum(event_sourced|state_stored|mixed)",
+          "createdBy: uuid",
+          "workspaceId: uuid"
         ],
         "column": 17,
         "step": 18,
