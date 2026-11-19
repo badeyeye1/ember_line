@@ -633,7 +633,11 @@ defmodule EmberLineWeb.UI do
 
   # ---------------------------------------------------------------- avatar
 
-  @doc "Initials on a colour. `color` is the account's avatar colour."
+  @doc """
+  Initials on a colour. `color` is the account's avatar colour; it picks one
+  of eight token colour pairs, so the same person always gets the same one.
+  No inline style: the Content-Security-Policy blocks style attributes.
+  """
   attr :name, :string, required: true
   attr :color, :string, default: nil
   attr :size, :string, values: ~w(sm md lg xl), default: "md"
@@ -641,12 +645,14 @@ defmodule EmberLineWeb.UI do
   def avatar(assigns) do
     ~H"""
     <span
-      class={["ui-av", @size != "md" && @size]}
-      style={@color && "--c:#{@color}"}
+      class={["ui-av", "tone-#{avatar_tone(@color || @name)}", @size != "md" && @size]}
       title={@name}
     >{initials(@name)}</span>
     """
   end
+
+  @doc false
+  def avatar_tone(key), do: :erlang.phash2(to_string(key), 8)
 
   # ---------------------------------------------------------------- form fields
 

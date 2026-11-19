@@ -203,6 +203,15 @@
   /* ---------- avatar ---------- */
   .ui-av { --c: var(--accent); width: 26px; height: 26px; border-radius: 50%; background: var(--c); color: #fff; display: inline-grid; place-items: center;
     font: 600 10.5px var(--font-sans); letter-spacing: .02em; flex: none; box-shadow: 0 0 0 2px var(--surface); position: relative; }
+  /* Avatar colours: token pairs (background and ink), chosen by tone class. */
+  .ui-av.tone-0 { background: var(--accent-soft); color: var(--accent); }
+  .ui-av.tone-1 { background: var(--cmd); color: var(--cmd-ink); }
+  .ui-av.tone-2 { background: var(--evt); color: var(--evt-ink); }
+  .ui-av.tone-3 { background: var(--rm); color: var(--rm-ink); }
+  .ui-av.tone-4 { background: var(--proj); color: var(--proj-ink); }
+  .ui-av.tone-5 { background: var(--auto); color: var(--auto-ink); }
+  .ui-av.tone-6 { background: var(--edge); color: var(--edge-ink); }
+  .ui-av.tone-7 { background: var(--err-bg); color: var(--err); }
   .ui-av.sm { width: 20px; height: 20px; font-size: 9px; }
   .ui-av.lg { width: 44px; height: 44px; font-size: 15px; }
   .ui-av.xl { width: 64px; height: 64px; font-size: 21px; }
