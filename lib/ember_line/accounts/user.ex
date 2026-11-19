@@ -73,6 +73,7 @@ defmodule EmberLine.Accounts.User do
 
   code_interface do
     define :verify_email, args: [:account_id, :code, :device]
+    define :pending_verification, args: [:account_id], not_found_error?: false
   end
 
   actions do
@@ -220,6 +221,17 @@ defmodule EmberLine.Accounts.User do
       run EmberLine.Accounts.Actions.VerifyEmail
     end
 
+    # Read model PendingVerification (slice view-verify): an account still
+    # waiting to verify its email, with where and when its code was sent.
+    # No result for an unknown or already verified account. Only server code
+    # that has proven the account id (the signed verify token) calls it.
+    read :pending_verification do
+      argument :account_id, :uuid, allow_nil?: false
+      get? true
+      filter expr(id == ^arg(:account_id) and is_nil(confirmed_at))
+      prepare build(load: [:code_sent_at, :resend_available_at])
+    end
+
     # The code's state, set when a code is issued or tried. Internal only.
     update :set_verification_code do
       accept [:verification_code_hash, :verification_code_sent_at, :verification_attempts]
@@ -347,6 +359,15 @@ defmodule EmberLine.Accounts.User do
     attribute :verification_code_hash, :string, sensitive?: true
     attribute :verification_code_sent_at, :utc_datetime_usec
     attribute :verification_attempts, :integer, allow_nil?: false, default: 0
+  end
+
+  calculations do
+    # PendingVerification.codeSentAt and .resendAvailableAt (30 seconds later).
+    calculate :code_sent_at, :utc_datetime_usec, expr(verification_code_sent_at)
+
+    calculate :resend_available_at,
+              :utc_datetime_usec,
+              expr(datetime_add(verification_code_sent_at, 30, :second))
   end
 
   identities do
