@@ -256,6 +256,11 @@ defmodule EmberLine.Accounts.User do
       prepare build(load: [:code_sent_at, :resend_available_at])
     end
 
+    # The person's title, set by setup-workspace's welcome form. Internal only.
+    update :set_title do
+      accept [:title]
+    end
+
     # The code's state, set when a code is issued or tried. Internal only.
     update :set_verification_code do
       accept [:verification_code_hash, :verification_code_sent_at, :verification_attempts]
@@ -393,6 +398,9 @@ defmodule EmberLine.Accounts.User do
     attribute :verification_code_hash, :string, sensitive?: true
     attribute :verification_code_sent_at, :utc_datetime_usec
     attribute :verification_attempts, :integer, allow_nil?: false, default: 0
+
+    # Added by slice setup-workspace: what the person does (ProfileSaved.title).
+    attribute :title, :string, public?: true
   end
 
   calculations do

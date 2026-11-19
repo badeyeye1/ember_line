@@ -259,6 +259,20 @@
   .ui-note { font-size: 13px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 0; }
   .ui-note.err { background: var(--err-bg); color: var(--err); border-color: color-mix(in srgb, var(--err-edge) 40%, var(--line)); }
 
+  /* ---------- steps and choice cards (welcome) ---------- */
+  .ui-steps { display: flex; gap: 6px; }
+  .ui-steps i { height: 4px; flex: 1; border-radius: 2px; background: var(--line); }
+  .ui-steps i.on { background: var(--accent); }
+  .ui-choice { border: 0; padding: 0; margin: 0; display: grid; gap: 6px; }
+  .ui-choice legend { margin-bottom: 6px; }
+  .ui-choice .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .ui-choice label { position: relative; border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 2px;
+    cursor: pointer; background: var(--surface); font-size: 13px; }
+  .ui-choice label small { color: var(--muted); font-size: 12px; }
+  .ui-choice input { position: absolute; opacity: 0; pointer-events: none; }
+  .ui-choice label:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+  .ui-choice label:has(input:focus-visible) { outline: 2px solid var(--accent); }
+
   /* ---------- auth shell ---------- */
   .ui-auth { min-height: 100vh; background: var(--bg); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .ui-auth-main { display: grid; align-content: center; justify-items: center; padding: 32px 20px; gap: 18px; }
