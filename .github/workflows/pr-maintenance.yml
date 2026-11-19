@@ -1,0 +1,116 @@
+name: PR maintenance
+
+# Keeps open pull requests on top of their base:
+# - When a pull request is merged, the pull requests stacked on it move to the
+#   merged pull request's base (usually main). With "Automatically delete head
+#   branches" on, GitHub does this too; this is the safety net.
+# - When main changes (or a pull request is merged into any base), every open
+#   pull request on that base is brought up to date, then the ones stacked on
+#   those, at any depth, parents first.
+# A branch that can't be updated cleanly gets one comment and is skipped.
+#
+# Commits pushed with the built-in GITHUB_TOKEN don't start other workflows,
+# so CI doesn't re-run on updated branches unless the repository has a
+# PR_MAINTENANCE_TOKEN secret (a fine-grained token with Contents and Pull
+# requests: read and write on this repository).
+
+on:
+  pull_request:
+    types: [closed]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only print what would be retargeted and updated"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: pr-maintenance
+  cancel-in-progress: false
+
+jobs:
+  maintain:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PR_MAINTENANCE_TOKEN || secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      EVENT: ${{ github.event_name }}
+      MERGED_HEAD: ${{ github.event.pull_request.head.ref }}
+      MERGED_BASE: ${{ github.event.pull_request.base.ref }}
+      MERGED_NUMBER: ${{ github.event.pull_request.number }}
+      DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+    steps:
+      - name: Retarget stacked pull requests and update open ones
+        shell: bash
+        run: |
+          set -uo pipefail
+          marker="<!-- pr-maintenance:conflict -->"
+
+          list_prs() {
+            gh pr list -R "$REPO" --state open --limit 200 --json number,baseRefName,headRefName
+          }
+
+          # Open pull requests whose base is branch $1: "number head" per line.
+          children() {
+            jq -r --arg b "$1" '.[] | select(.baseRefName == $b) | "\(.number) \(.headRefName)"' <<<"$prs"
+          }
+
+          head_sha() { gh pr view "$1" -R "$REPO" --json headRefOid --jq .headRefOid; }
+
+          # Merge the base into pull request $1's branch; wait until the new
+          # commit is there, so the pull requests stacked on it see it.
+          update() {
+            local n=$1 before after out
+            if [ -n "${DRY_RUN:-}" ]; then echo "[dry run] would update #$n"; return; fi
+            before=$(head_sha "$n")
+            if out=$(gh api -X PUT "repos/$REPO/pulls/$n/update-branch" -f expected_head_sha="$before" 2>&1); then
+              for _ in $(seq 1 30); do
+                after=$(head_sha "$n")
+                [ "$after" != "$before" ] && break
+                sleep 2
+              done
+              echo "Updated #$n"
+            elif grep -qi "no new commits\|already up.to.date" <<<"$out"; then
+              echo "#$n is already up to date"
+            elif grep -qi "conflict" <<<"$out"; then
+              echo "::warning::#$n has merge conflicts with its base; skipped"
+              if ! gh pr view "$n" -R "$REPO" --json comments --jq '.comments[].body' | grep -qF "$marker"; then
+                gh pr comment "$n" -R "$REPO" --body "$marker
+          This branch can't be brought up to date with its base automatically: there are merge conflicts. Merge the base into it by hand." >/dev/null
+              fi
+            else
+              echo "::warning::Could not update #$n: $out"
+            fi
+          }
+
+          # Update every pull request stacked on branch $1, parents first.
+          walk() {
+            local n head
+            while read -r n head; do
+              [ -z "$n" ] && continue
+              update "$n"
+              walk "$head"
+            done < <(children "$1")
+          }
+
+          prs=$(list_prs)
+
+          if [ "$EVENT" = "pull_request" ]; then
+            echo "#$MERGED_NUMBER ($MERGED_HEAD) was merged into $MERGED_BASE"
+            while read -r n head; do
+              [ -z "$n" ] && continue
+              echo "Retargeting #$n from $MERGED_HEAD to $MERGED_BASE"
+              [ -n "${DRY_RUN:-}" ] || gh pr edit "$n" -R "$REPO" --base "$MERGED_BASE" >/dev/null
+            done < <(children "$MERGED_HEAD")
+            prs=$(list_prs)
+            walk "$MERGED_BASE"
+          else
+            walk main
+          fi
