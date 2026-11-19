@@ -9,7 +9,7 @@ defmodule EmberLineWeb.BoardLiveTest do
   alias EmberLine.CommandedApp
   alias EmberLine.Modeling.Project
   alias EmberLine.Modeling.Project.{CreateProject, DeleteProject}
-  alias EmberLine.Modeling.PrototypeFile
+  alias EmberLine.Modeling.{PrototypeFile, PrototypePage}
 
   setup ctx do
     ctx = register_and_sign_in(ctx)
@@ -72,6 +72,103 @@ defmodule EmberLineWeb.BoardLiveTest do
 
     refute has_element?(view, "#intake-error")
     assert [%{name: "pasted-prototype.html", type: "text/html"}] = files_for(ctx)
+  end
+
+  # split-pages
+
+  defp paste_interactive(view) do
+    view
+    |> form("#prototype-paste", paste: %{html: ~s(<a href="#b">B</a><section id="b"></section>)})
+    |> render_change()
+  end
+
+  defp split_page(view, n, role) do
+    hook = element(view, "#split-pages")
+
+    render_hook(hook, "split_page", %{
+      title: "Page #{n}",
+      role: role,
+      route: "#p#{n}",
+      html: "<p>#{n}</p>"
+    })
+  end
+
+  test "Split into pages shows only for an interactive prototype", ctx do
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+    refute has_element?(view, "#split-pages")
+
+    view |> form("#prototype-paste", paste: %{html: "<h1>About</h1>"}) |> render_change()
+    refute has_element?(view, "#split-pages")
+
+    paste_interactive(view)
+
+    assert has_element?(
+             view,
+             "#split-pages[phx-hook][data-src^='/prototype/']",
+             "Split into pages"
+           )
+  end
+
+  test "Split an interactive prototype: the pages are stored and the board says so", ctx do
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+    paste_interactive(view)
+
+    for {n, role} <- [{1, "Host"}, {2, "Host"}, {3, "Member"}], do: split_page(view, n, role)
+
+    render_hook(element(view, "#split-pages"), "split_done", %{
+      found: 3,
+      roles: 2,
+      timed_out: false
+    })
+
+    assert has_element?(
+             view,
+             "#intake-note-0",
+             "Split pasted-prototype.html into 3 pages across 2 roles. Each tab above is one page."
+           )
+
+    project = Aggregate.aggregate_state(CommandedApp, Project, "project-" <> ctx.project_id)
+
+    assert ["Page 1", "Page 2", "Page 3"] =
+             project.prototype_id |> PrototypePage.for_prototype!() |> Enum.map(& &1.title)
+  end
+
+  test "Already split", ctx do
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+    paste_interactive(view)
+
+    for _try <- 1..2 do
+      split_page(view, 1, "")
+
+      render_hook(element(view, "#split-pages"), "split_done", %{
+        found: 1,
+        roles: 0,
+        timed_out: false
+      })
+    end
+
+    assert has_element?(
+             view,
+             "#intake-error",
+             "This prototype is already split. Undo the split first."
+           )
+  end
+
+  test "Prototype does not respond", ctx do
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+    paste_interactive(view)
+
+    render_hook(element(view, "#split-pages"), "split_done", %{
+      found: 0,
+      roles: 0,
+      timed_out: true
+    })
+
+    assert has_element?(
+             view,
+             "#intake-error",
+             "The prototype didn't respond while it was being split. Reload it and try again."
+           )
   end
 
   test "No usable screens", ctx do

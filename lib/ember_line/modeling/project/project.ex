@@ -14,18 +14,32 @@ defmodule EmberLine.Modeling.Project do
     ProjectCreated,
     ProjectDeleted,
     PrototypeLimits,
-    PrototypeLoaded
+    PrototypeLoaded,
+    PrototypeSplitIntoPages,
+    SplitPrototype,
+    SplitUndone
   }
 
   @source_types [:new, :local, :github]
 
-  defstruct [:project_id, :name, :prototype_id, deleted?: false]
+  @max_pages 80
+
+  defstruct [
+    :project_id,
+    :name,
+    :prototype_id,
+    deleted?: false,
+    interactive?: false,
+    split?: false
+  ]
 
   @type t :: %__MODULE__{
           project_id: Ecto.UUID.t() | nil,
           name: String.t() | nil,
           prototype_id: Ecto.UUID.t() | nil,
-          deleted?: boolean()
+          deleted?: boolean(),
+          interactive?: boolean(),
+          split?: boolean()
         }
 
   # create-project
@@ -97,14 +111,46 @@ defmodule EmberLine.Modeling.Project do
     end
   end
 
+  # split-pages
+
+  def execute(%__MODULE__{} = project, %SplitPrototype{} = command) do
+    cond do
+      is_nil(project.project_id) or project.deleted? -> {:error, :project_not_found}
+      # Until Member roles exist, "allowed" means signed in.
+      is_nil(command.split_by) -> {:error, :split_not_allowed}
+      not project.interactive? -> {:error, :not_interactive}
+      project.split? -> {:error, :already_split}
+      true -> split_found_pages(project, command)
+    end
+  end
+
+  defp split_found_pages(_project, %SplitPrototype{found_page_count: 0, timed_out: true}),
+    do: {:error, :prototype_did_not_respond}
+
+  defp split_found_pages(_project, %SplitPrototype{found_page_count: 0}),
+    do: {:error, :no_pages_found}
+
+  defp split_found_pages(project, command), do: prototype_split_into_pages(project, command)
+
   def apply(%__MODULE__{} = project, %ProjectCreated{project_id: id, name: name}),
     do: %{project | project_id: id, name: name}
 
   def apply(%__MODULE__{} = project, %ProjectDeleted{}), do: %{project | deleted?: true}
 
   # A prototype loaded again keeps its id.
-  def apply(%__MODULE__{} = project, %PrototypeLoaded{} = event),
-    do: %{project | project_id: event.project_id, prototype_id: event.prototype_id}
+  # A new load clears the split.
+  def apply(%__MODULE__{} = project, %PrototypeLoaded{} = event) do
+    %{
+      project
+      | project_id: event.project_id,
+        prototype_id: event.prototype_id,
+        interactive?: event.interactive == true,
+        split?: false
+    }
+  end
+
+  def apply(%__MODULE__{} = project, %PrototypeSplitIntoPages{}), do: %{project | split?: true}
+  def apply(%__MODULE__{} = project, %SplitUndone{}), do: %{project | split?: false}
 
   defp project_created(%CreateProject{} = command) do
     %ProjectCreated{
@@ -147,6 +193,25 @@ defmodule EmberLine.Modeling.Project do
       loaded_at: command.loaded_at
     }
   end
+
+  # The first 80 pages in the order found are kept.
+  defp prototype_split_into_pages(project, %SplitPrototype{} = command) do
+    page_count = min(command.found_page_count, @max_pages)
+
+    %PrototypeSplitIntoPages{
+      project_id: project.project_id,
+      prototype_id: project.prototype_id,
+      page_count: page_count,
+      role_count: command.role_count,
+      skipped_count: command.found_page_count - page_count,
+      timed_out: command.timed_out,
+      split_by: command.split_by,
+      split_at: command.split_at
+    }
+  end
+
+  @doc "How many of a split's pages are kept."
+  def max_pages, do: @max_pages
 
   defp blank?(value), do: is_nil(value) or String.trim(value) == ""
 end

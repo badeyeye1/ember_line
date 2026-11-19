@@ -323,4 +323,7 @@
   .ui-mono { font-family: var(--font-mono); font-size: 12px; }
   textarea.ui-in.ui-mono { background: var(--bg); padding: 10px; }
   @media (max-width: 820px) { .ui-intake { grid-template-columns: 1fr; } }
+  /* split-pages: the hidden frame the prototype runs in while it is split */
+  .ui-offscreen { position: fixed; left: -12000px; top: 0; width: 1280px; height: 900px; overflow: hidden; pointer-events: none; }
+  .ui-offscreen iframe { width: 1280px; height: 900px; border: 0; }
 }

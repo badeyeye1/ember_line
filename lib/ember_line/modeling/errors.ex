@@ -22,7 +22,15 @@ defmodule EmberLine.Modeling.Errors do
     too_much_in_one_load:
       "These files add up to more than 100 MB. Load fewer at a time, or remove large images.",
     no_usable_screens:
-      "We couldn't find any screens in those files. Drop HTML files, screenshots or a .zip of the prototype."
+      "We couldn't find any screens in those files. Drop HTML files, screenshots or a .zip of the prototype.",
+    # split-pages
+    split_not_allowed: "Only editors can split a prototype.",
+    not_interactive:
+      "Load an interactive HTML prototype first: only those can be split into pages.",
+    already_split: "This prototype is already split. Undo the split first.",
+    prototype_did_not_respond:
+      "The prototype didn't respond while it was being split. Reload it and try again.",
+    no_pages_found: "No separate pages found. Derive the model from the whole file instead."
   }
 
   @doc "What the screen shows for the error."

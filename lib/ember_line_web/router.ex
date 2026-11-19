@@ -24,6 +24,26 @@ defmodule EmberLineWeb.Router do
     plug :sign_in_with_remember_me
   end
 
+  # A loaded prototype, served sandboxed to the board's hidden frame (slice
+  # split-pages). No session: a signed token from BoardLive grants access.
+  # `sandbox` gives the prototype's own scripts an opaque origin; it can't
+  # make requests or submit forms, and only Emberline may frame it.
+  pipeline :prototype do
+    plug :accepts, ["html"]
+
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" =>
+        "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline' https:; style-src 'unsafe-inline' https:; img-src data: blob: https:; font-src data: https:; media-src data: blob: https:; connect-src 'none'; form-action 'none'; base-uri 'none'; frame-ancestors 'self'",
+      "referrer-policy" => "no-referrer",
+      "cache-control" => "private, no-store"
+    }
+  end
+
+  scope "/", EmberLineWeb do
+    pipe_through :prototype
+    get "/prototype/:token", PrototypeController, :show
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
     plug :load_from_bearer
