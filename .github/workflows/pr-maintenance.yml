@@ -1,18 +1,16 @@
 name: PR maintenance
 
-# Keeps open pull requests on top of their base:
+# Keeps open pull requests pointing at the right base, and says when one is
+# behind. It never pushes to a pull request's branch: commits pushed with the
+# built-in GITHUB_TOKEN can't run CI, so an automatic update would leave a
+# failed check on the pull request.
 # - When a pull request is merged, the pull requests stacked on it move to the
 #   merged pull request's base (usually main). With "Automatically delete head
 #   branches" on, GitHub does this too; this is the safety net.
-# - When main changes (or a pull request is merged into any base), every open
-#   pull request on that base is brought up to date, then the ones stacked on
-#   those, at any depth, parents first.
-# A branch that can't be updated cleanly gets one comment and is skipped.
-#
-# Commits pushed with the built-in GITHUB_TOKEN don't start other workflows,
-# so CI doesn't re-run on updated branches unless the repository has a
-# PR_MAINTENANCE_TOKEN secret (a fine-grained token with Contents and Pull
-# requests: read and write on this repository).
+# - After every merge or push to main, each open pull request is compared with
+#   its base. One comment says how many commits it's behind (edited as that
+#   changes) and is deleted once the branch is up to date. Use the "Update
+#   branch" button, or merge the base in, to catch up.
 
 on:
   pull_request:
@@ -22,12 +20,12 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Only print what would be retargeted and updated"
+        description: "Only print what would be retargeted and commented"
         type: boolean
         default: true
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
 
 concurrency:
@@ -39,7 +37,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ secrets.PR_MAINTENANCE_TOKEN || secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       REPO: ${{ github.repository }}
       EVENT: ${{ github.event_name }}
       MERGED_HEAD: ${{ github.event.pull_request.head.ref }}
@@ -47,70 +45,59 @@ jobs:
       MERGED_NUMBER: ${{ github.event.pull_request.number }}
       DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
     steps:
-      - name: Retarget stacked pull requests and update open ones
+      - name: Retarget stacked pull requests and flag ones that are behind
         shell: bash
         run: |
           set -uo pipefail
-          marker="<!-- pr-maintenance:conflict -->"
+          marker="<!-- pr-maintenance:behind -->"
 
           list_prs() {
             gh pr list -R "$REPO" --state open --limit 200 --json number,baseRefName,headRefName
           }
 
-          # Open pull requests whose base is branch $1: "number head" per line.
-          children() {
-            jq -r --arg b "$1" '.[] | select(.baseRefName == $b) | "\(.number) \(.headRefName)"' <<<"$prs"
+          # The id of this workflow's comment on pull request $1, if any.
+          comment_id() {
+            gh api "repos/$REPO/issues/$1/comments" --paginate \
+              --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -n 1
           }
 
-          head_sha() { gh pr view "$1" -R "$REPO" --json headRefOid --jq .headRefOid; }
+          # Comment on, update, or clear the "behind" note for pull request $1.
+          flag() {
+            local n=$1 base=$2 head=$3 behind id body
+            behind=$(gh api "repos/$REPO/compare/$(jq -rn --arg s "$base" '$s|@uri')...$(jq -rn --arg s "$head" '$s|@uri')" --jq .behind_by 2>/dev/null) || {
+              echo "::warning::Could not compare #$n ($head) with $base"
+              return
+            }
+            id=$(comment_id "$n")
 
-          # Merge the base into pull request $1's branch; wait until the new
-          # commit is there, so the pull requests stacked on it see it.
-          update() {
-            local n=$1 before after out
-            if [ -n "${DRY_RUN:-}" ]; then echo "[dry run] would update #$n"; return; fi
-            before=$(head_sha "$n")
-            if out=$(gh api -X PUT "repos/$REPO/pulls/$n/update-branch" -f expected_head_sha="$before" 2>&1); then
-              for _ in $(seq 1 30); do
-                after=$(head_sha "$n")
-                [ "$after" != "$before" ] && break
-                sleep 2
-              done
-              echo "Updated #$n"
-            elif grep -qi "no new commits\|already up.to.date" <<<"$out"; then
-              echo "#$n is already up to date"
-            elif grep -qi "conflict" <<<"$out"; then
-              echo "::warning::#$n has merge conflicts with its base; skipped"
-              if ! gh pr view "$n" -R "$REPO" --json comments --jq '.comments[].body' | grep -qF "$marker"; then
-                gh pr comment "$n" -R "$REPO" --body "$marker
-          This branch can't be brought up to date with its base automatically: there are merge conflicts. Merge the base into it by hand." >/dev/null
+            if [ "$behind" -gt 0 ]; then
+              body="$marker
+          This branch is **$behind commit$([ "$behind" -eq 1 ] || echo s) behind \`$base\`**. Bring it up to date before merging: use **Update branch** below, or merge \`$base\` into it. CI then runs on the updated branch."
+              echo "#$n ($head) is $behind behind $base"
+              [ -n "${DRY_RUN:-}" ] && return
+              if [ -n "$id" ]; then
+                gh api -X PATCH "repos/$REPO/issues/comments/$id" -f body="$body" >/dev/null
+              else
+                gh pr comment "$n" -R "$REPO" --body "$body" >/dev/null
               fi
             else
-              echo "::warning::Could not update #$n: $out"
+              echo "#$n ($head) is up to date with $base"
+              if [ -n "$id" ] && [ -z "${DRY_RUN:-}" ]; then
+                gh api -X DELETE "repos/$REPO/issues/comments/$id" >/dev/null
+              fi
             fi
           }
 
-          # Update every pull request stacked on branch $1, parents first.
-          walk() {
-            local n head
-            while read -r n head; do
-              [ -z "$n" ] && continue
-              update "$n"
-              walk "$head"
-            done < <(children "$1")
-          }
-
-          prs=$(list_prs)
-
           if [ "$EVENT" = "pull_request" ]; then
             echo "#$MERGED_NUMBER ($MERGED_HEAD) was merged into $MERGED_BASE"
-            while read -r n head; do
+            while read -r n; do
               [ -z "$n" ] && continue
               echo "Retargeting #$n from $MERGED_HEAD to $MERGED_BASE"
               [ -n "${DRY_RUN:-}" ] || gh pr edit "$n" -R "$REPO" --base "$MERGED_BASE" >/dev/null
-            done < <(children "$MERGED_HEAD")
-            prs=$(list_prs)
-            walk "$MERGED_BASE"
-          else
-            walk main
+            done < <(list_prs | jq -r --arg b "$MERGED_HEAD" '.[] | select(.baseRefName == $b) | .number')
           fi
+
+          while read -r n base head; do
+            [ -z "$n" ] && continue
+            flag "$n" "$base" "$head"
+          done < <(list_prs | jq -r '.[] | "\(.number) \(.baseRefName) \(.headRefName)"')
