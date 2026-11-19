@@ -6,15 +6,25 @@ defmodule EmberLine.Modeling.Project do
   """
 
   alias EmberLine.Accounts.Workspace
-  alias EmberLine.Modeling.Project.{CreateProject, DeleteProject, ProjectCreated, ProjectDeleted}
+
+  alias EmberLine.Modeling.Project.{
+    CreateProject,
+    DeleteProject,
+    LoadPrototype,
+    ProjectCreated,
+    ProjectDeleted,
+    PrototypeLimits,
+    PrototypeLoaded
+  }
 
   @source_types [:new, :local, :github]
 
-  defstruct [:project_id, :name, deleted?: false]
+  defstruct [:project_id, :name, :prototype_id, deleted?: false]
 
   @type t :: %__MODULE__{
           project_id: Ecto.UUID.t() | nil,
           name: String.t() | nil,
+          prototype_id: Ecto.UUID.t() | nil,
           deleted?: boolean()
         }
 
@@ -59,10 +69,42 @@ defmodule EmberLine.Modeling.Project do
     end
   end
 
+  # load-prototype
+
+  def execute(%__MODULE__{} = project, %LoadPrototype{} = command) do
+    cond do
+      is_nil(project.project_id) or project.deleted? ->
+        {:error, :project_not_found}
+
+      # Until Member roles exist, "allowed" means signed in.
+      is_nil(command.loaded_by) ->
+        {:error, :load_not_allowed}
+
+      command.unreadable_file_names != [] ->
+        {:error, {:files_unreadable, command.unreadable_file_names}}
+
+      command.too_large_file_names != [] ->
+        {:error, {:files_too_large, command.too_large_file_names}}
+
+      command.total_bytes > PrototypeLimits.max_total_bytes() ->
+        {:error, :too_much_in_one_load}
+
+      command.file_names == [] ->
+        {:error, :no_usable_screens}
+
+      true ->
+        prototype_loaded(project, command)
+    end
+  end
+
   def apply(%__MODULE__{} = project, %ProjectCreated{project_id: id, name: name}),
     do: %{project | project_id: id, name: name}
 
   def apply(%__MODULE__{} = project, %ProjectDeleted{}), do: %{project | deleted?: true}
+
+  # A prototype loaded again keeps its id.
+  def apply(%__MODULE__{} = project, %PrototypeLoaded{} = event),
+    do: %{project | project_id: event.project_id, prototype_id: event.prototype_id}
 
   defp project_created(%CreateProject{} = command) do
     %ProjectCreated{
@@ -86,6 +128,23 @@ defmodule EmberLine.Modeling.Project do
       project_id: command.project_id,
       deleted_by: command.deleted_by,
       deleted_at: command.deleted_at
+    }
+  end
+
+  defp prototype_loaded(project, %LoadPrototype{} = command) do
+    {file_names, skipped_count} = PrototypeLimits.kept(command.file_names)
+
+    %PrototypeLoaded{
+      prototype_id: project.prototype_id || command.prototype_id,
+      project_id: command.project_id,
+      source: command.source,
+      file_names: file_names,
+      file_count: length(file_names),
+      skipped_count: skipped_count,
+      ignored_file_names: command.ignored_file_names,
+      interactive: command.interactive,
+      loaded_by: command.loaded_by,
+      loaded_at: command.loaded_at
     }
   end
 

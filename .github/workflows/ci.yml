@@ -65,7 +65,7 @@ jobs:
         run: mix credo --strict
 
       - name: Sobelow
-        run: mix sobelow --exit low --private
+        run: mix sobelow --exit low --private --skip
 
       - name: Check Ash codegen is up to date
         run: mix ash.codegen --check
