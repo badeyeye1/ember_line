@@ -108,7 +108,12 @@ defmodule EmberLineWeb.UI do
         />
         <.nav_item icon={:inbox} label="Inbox" current={@nav == :inbox} />
         <.nav_item icon={:members} label="Members" current={@nav == :members} />
-        <.nav_item icon={:settings} label="Workspace settings" current={@nav == :workspace_settings} />
+        <.nav_item
+          icon={:settings}
+          label="Workspace settings"
+          href={@workspace && "/workspaces/#{@workspace.id}/settings"}
+          current={@nav == :workspace_settings}
+        />
       </nav>
 
       <div class="ui-side-sep"></div>
@@ -300,6 +305,7 @@ defmodule EmberLineWeb.UI do
 
   @doc "The settings navigation of the account and workspace pages."
   attr :current, :atom, required: true
+  attr :workspace_id, :string, default: nil, doc: "links the workspace pages when known"
 
   def settings_nav(assigns) do
     assigns =
@@ -310,7 +316,8 @@ defmodule EmberLineWeb.UI do
           {:account_notifications, "Notifications", "/account/notifications"}
         ],
         workspace: [
-          {:workspace_general, "General", nil},
+          {:workspace_general, "General",
+           assigns.workspace_id && "/workspaces/#{assigns.workspace_id}/settings"},
           {:workspace_members, "Members", nil},
           {:workspace_billing, "Plan and billing", nil},
           {:workspace_integrations, "Integrations", nil}

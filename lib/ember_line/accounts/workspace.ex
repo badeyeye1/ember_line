@@ -1,13 +1,16 @@
 defmodule EmberLine.Accounts.Workspace do
   @moduledoc """
   A workspace (Workspace stream, state stored). Created for a new account when
-  it verifies its email (slice verify-email → WorkspaceCreated).
+  it verifies its email (slice verify-email → WorkspaceCreated); its details
+  are changed by save-workspace (SaveWorkspaceDetails → WorkspaceDetailsSaved).
   """
   use Ash.Resource,
     otp_app: :ember_line,
     domain: EmberLine.Accounts,
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
+
+  alias EmberLine.Accounts.{Changes, Validations}
 
   postgres do
     table "workspaces"
@@ -18,6 +21,10 @@ defmodule EmberLine.Accounts.Workspace do
     end
   end
 
+  code_interface do
+    define :save_workspace_details
+  end
+
   actions do
     defaults [:read]
 
@@ -25,11 +32,34 @@ defmodule EmberLine.Accounts.Workspace do
     create :create_for_owner do
       accept [:name, :slug, :owner_account_id, :created_at]
     end
+
+    # Command SaveWorkspaceDetails → event WorkspaceDetailsSaved (slice
+    # save-workspace). actorAccountId is the actor, never a parameter.
+    update :save_workspace_details do
+      require_atomic? false
+      accept [:name, :slug, :default_stack]
+
+      validate Validations.CanChangeWorkspaceSettings
+      validate Validations.WorkspaceNameGiven
+      validate Validations.WorkspaceSlugValid
+
+      change Changes.RecordWorkspaceDetailsSaved
+
+      # The unique index is the guarantee when two workspaces race for the
+      # same URL; say it in the same words as the up-front check.
+      error_handler &Validations.WorkspaceSlugValid.handle_identity_error/2
+    end
   end
 
   policies do
     policy action_type(:read) do
       authorize_if expr(owner_account_id == ^actor(:id))
+    end
+
+    # Who may save is a rule with the scenario's words, in
+    # CanChangeWorkspaceSettings; the policy only needs someone acting.
+    policy action(:save_workspace_details) do
+      authorize_if actor_present()
     end
   end
 
@@ -38,6 +68,9 @@ defmodule EmberLine.Accounts.Workspace do
     attribute :name, :string, allow_nil?: false, public?: true
     attribute :slug, :string, allow_nil?: false, public?: true
     attribute :created_at, :utc_datetime_usec, allow_nil?: false, public?: true
+
+    # The default stack for new projects (save-workspace).
+    attribute :default_stack, :string, public?: true
   end
 
   relationships do
