@@ -52,6 +52,12 @@ defmodule EmberLine.Given.Account do
     code_sent_to(account)
   end
 
+  @doc "Given \"code sent N seconds ago\": moves the code's sent time back."
+  def code_sent_seconds_ago(account, seconds) do
+    sent_at = DateTime.add(DateTime.utc_now(), -seconds, :second)
+    Ash.Seed.update!(account, %{verification_code_sent_at: sent_at})
+  end
+
   @doc "Given \"code sent N minutes ago\": moves the code's sent time back."
   def code_sent_minutes_ago(account, minutes) do
     sent_at = DateTime.add(DateTime.utc_now(), -minutes * 60, :second)

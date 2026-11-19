@@ -12,9 +12,18 @@ defmodule EmberLine.Accounts.VerificationCode do
 
   @lifetime_minutes 15
   @max_attempts 5
+  @resend_wait_seconds 30
 
   def lifetime_minutes, do: @lifetime_minutes
   def max_attempts, do: @max_attempts
+
+  @doc "Whole seconds until a new code may be sent (0 when it may be sent now)."
+  def resend_wait(%{verification_code_sent_at: nil}, _now), do: 0
+
+  def resend_wait(%{verification_code_sent_at: sent_at}, now) do
+    left_ms = @resend_wait_seconds * 1000 - DateTime.diff(now, sent_at, :millisecond)
+    if left_ms > 0, do: div(left_ms + 999, 1000), else: 0
+  end
 
   @doc "A random 6-digit code, zero-padded."
   def generate do
@@ -35,14 +44,14 @@ defmodule EmberLine.Accounts.VerificationCode do
 
   def too_many_tries?(%{verification_attempts: attempts}), do: attempts >= @max_attempts
 
-  @doc "Issues a new code to `account`: stores its hash, then emails it."
-  def issue!(%User{} = account) do
+  @doc "Issues a new code to `account` at `now`: stores its hash, then emails it."
+  def issue!(%User{} = account, now \\ DateTime.utc_now()) do
     code = generate()
 
     account
     |> Ash.Changeset.for_update(:set_verification_code, %{
       verification_code_hash: hash(code),
-      verification_code_sent_at: DateTime.utc_now(),
+      verification_code_sent_at: now,
       verification_attempts: 0
     })
     |> Ash.update!(authorize?: false)
