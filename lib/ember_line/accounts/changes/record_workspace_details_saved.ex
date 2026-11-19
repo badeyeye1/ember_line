@@ -3,10 +3,8 @@ defmodule EmberLine.Accounts.Changes.RecordWorkspaceDetailsSaved do
   Records WorkspaceDetailsSaved (Workspace stream) in the outbox after
   :save_workspace_details writes, in the same transaction.
 
-  `accountId` is the command's actorAccountId, which comes from the actor,
-  not the record, so this doesn't use the generic RecordEvent change.
-  `title` isn't part of SaveWorkspaceDetails: it is recorded as null until
-  the model says where it comes from.
+  `savedBy` is the actor, not a field of the record, and `savedAt` is the
+  moment it was saved, so this doesn't use the generic RecordEvent change.
   """
   use Ash.Resource.Change
 
@@ -21,9 +19,9 @@ defmodule EmberLine.Accounts.Changes.RecordWorkspaceDetailsSaved do
         "workspaceId" => workspace.id,
         "name" => workspace.name,
         "slug" => workspace.slug,
-        "accountId" => actor_id,
-        "title" => nil,
-        "defaultStack" => workspace.default_stack
+        "defaultStack" => workspace.default_stack,
+        "savedBy" => actor_id,
+        "savedAt" => DateTime.utc_now()
       })
 
       {:ok, workspace}

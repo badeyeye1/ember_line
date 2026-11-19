@@ -4,10 +4,10 @@ defmodule EmberLine.Accounts.Validations.WorkspaceSlugValid do
 
     * "Invalid URL" and "URL at the length boundaries": 2 to 39 lowercase
       letters, numbers or hyphens;
-    * no scenario yet (a spec gap): a URL another workspace has is taken.
-      Checked up front for the message; the `unique_slug` index is the
-      guarantee when two saves race, and `handle_identity_error/2` gives that
-      case the same words.
+    * "URL already taken" (and "Keeping its own URL" is fine): checked up
+      front for the message; the `unique_slug` index is the guarantee when
+      two saves race, and `handle_identity_error/2` gives that case the same
+      words.
   """
   use Ash.Resource.Validation
   require Ash.Query
@@ -17,7 +17,7 @@ defmodule EmberLine.Accounts.Validations.WorkspaceSlugValid do
 
   @format ~r/\A[a-z0-9-]{2,39}\z/
   @invalid "Use 2 to 39 lowercase letters, numbers or hyphens for the URL."
-  @taken "That URL is taken."
+  @taken "That URL is taken. Try another."
 
   @impl true
   def validate(changeset, _opts, _context) do

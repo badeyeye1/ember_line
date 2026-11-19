@@ -14,23 +14,13 @@ defmodule EmberLineWeb.WorkspaceSettingsLive do
 
   on_mount {EmberLineWeb.LiveUserAuth, :live_user_required}
 
-  # The same choices as the projects screen's Stack field.
-  @stacks [
-    "Elixir: Phoenix LiveView + Ash + AshCommanded",
-    "Elixir: Phoenix LiveView + Ash",
-    "Elixir: Phoenix LiveView + Ash + Commanded",
-    "Elixir: Phoenix LiveView + Ash + Commanded + Hologram",
-    "Elixir: Phoenix LiveView + Ash + Commanded + Elm",
-    "Elixir: Phoenix LiveView + Commanded",
-    "Other"
-  ]
-
   # The messages the screen shows, in the scenarios' words.
   @messages [
     "The workspace needs a name.",
     "Use 2 to 39 lowercase letters, numbers or hyphens for the URL.",
-    "That URL is taken.",
-    "only owners and admins can change workspace settings"
+    "That URL is taken. Try another.",
+    "Pick a stack from the list.",
+    "Only owners and admins can change workspace settings."
   ]
 
   @impl true
@@ -91,7 +81,7 @@ defmodule EmberLineWeb.WorkspaceSettingsLive do
     %{
       "name" => workspace.name,
       "slug" => workspace.slug,
-      "default_stack" => workspace.default_stack || hd(@stacks)
+      "default_stack" => workspace.default_stack || hd(Workspace.stacks())
     }
   end
 
@@ -127,7 +117,7 @@ defmodule EmberLineWeb.WorkspaceSettingsLive do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, stacks: @stacks)
+    assigns = assign(assigns, stacks: Workspace.stacks())
 
     ~H"""
     <Layouts.app
@@ -163,7 +153,7 @@ defmodule EmberLineWeb.WorkspaceSettingsLive do
                     field={@form[:default_stack]}
                     type="select"
                     label="Default stack for new projects"
-                    options={Enum.map(@stacks, &{&1, &1})}
+                    options={Enum.map(Workspace.stacks(), &{&1, &1})}
                   />
                 </div>
                 <:footer>

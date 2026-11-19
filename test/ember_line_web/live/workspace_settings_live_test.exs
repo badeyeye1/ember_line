@@ -35,7 +35,7 @@ defmodule EmberLineWeb.WorkspaceSettingsLiveTest do
     assert has_element?(view, ~s(.ui-pg-nav a[aria-current="page"]), "General")
   end
 
-  test "Rename workspace", %{conn: conn, user: user, workspace: workspace} do
+  test "Owner renames the workspace", %{conn: conn, user: user, workspace: workspace} do
     {:ok, view, _html} = live(conn, path(workspace))
 
     html = submit(view, %{name: "Acme Labs", slug: "acme-labs", default_stack: "Other"})
@@ -47,7 +47,8 @@ defmodule EmberLineWeb.WorkspaceSettingsLiveTest do
     stored = Ash.get!(Workspace, workspace.id, actor: user)
     assert {stored.name, stored.slug, stored.default_stack} == {"Acme Labs", "acme-labs", "Other"}
     [event] = assert_events("WorkspaceDetailsSaved", workspace.id, 1)
-    assert event.data["accountId"] == user.id
+    assert event.data["savedBy"] == user.id
+    refute Map.has_key?(event.data, "accountId")
   end
 
   test "Name is empty", %{conn: conn, workspace: workspace} do
@@ -67,7 +68,7 @@ defmodule EmberLineWeb.WorkspaceSettingsLiveTest do
     assert html =~ "Use 2 to 39 lowercase letters, numbers or hyphens for the URL."
   end
 
-  test "Actor is not an admin", %{workspace: workspace} do
+  test "Not the owner or an admin", %{workspace: workspace} do
     # Only the owner can open the page; anyone else is sent away with the rule.
     editor = Given.Account.account()
 
@@ -75,7 +76,7 @@ defmodule EmberLineWeb.WorkspaceSettingsLiveTest do
       build_conn() |> init_test_session(%{}) |> AuthHelpers.store_in_session(editor)
 
     assert {:error, {:redirect, %{to: "/", flash: flash}}} = live(conn, path(workspace))
-    assert flash["error"] == "only owners and admins can change workspace settings"
+    assert flash["error"] == "Only owners and admins can change workspace settings."
   end
 
   test "URL at the length boundaries", %{conn: conn, workspace: workspace} do
@@ -84,11 +85,25 @@ defmodule EmberLineWeb.WorkspaceSettingsLiveTest do
     assert submit(view, %{name: "Acme", slug: "ab", default_stack: "Other"}) =~ "Saved."
   end
 
-  test "a URL another workspace has is taken", %{conn: conn, workspace: workspace} do
+  test "URL already taken", %{conn: conn, workspace: workspace} do
     Given.Account.workspace_created(Given.Account.account(), %{slug: "taken"})
     {:ok, view, _html} = live(conn, path(workspace))
 
     assert submit(view, %{name: "Acme", slug: "taken", default_stack: "Other"}) =~
-             "That URL is taken."
+             "That URL is taken. Try another."
+  end
+
+  test "Stack isn't one of the listed ones: the screen only offers the listed stacks",
+       %{conn: conn, workspace: workspace} do
+    {:ok, view, _html} = live(conn, path(workspace))
+
+    options =
+      view
+      |> element("#workspace_default_stack")
+      |> render()
+      |> then(&Regex.scan(~r/<option[^>]*value="([^"]*)"/, &1, capture: :all_but_first))
+      |> List.flatten()
+
+    assert options == Workspace.stacks()
   end
 end

@@ -1,7 +1,7 @@
 defmodule EmberLine.Accounts.Validations.CanChangeWorkspaceSettings do
   @moduledoc """
-  save-workspace rule ("Actor is not an admin"): only owners and admins can
-  change workspace settings.
+  save-workspace rule ("Not the owner or an admin"): only owners and admins
+  can change workspace settings.
 
   Member roles don't exist yet (they arrive with the Member slices), so for
   now only the workspace's owner may; every other account is refused. The
@@ -9,7 +9,7 @@ defmodule EmberLine.Accounts.Validations.CanChangeWorkspaceSettings do
   """
   use Ash.Resource.Validation
 
-  @message "only owners and admins can change workspace settings"
+  @message "Only owners and admins can change workspace settings."
 
   def message, do: @message
 
