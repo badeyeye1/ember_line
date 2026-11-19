@@ -3,6 +3,7 @@ defmodule EmberLineWeb.SignupLiveTest do
   use EmberLineWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
+  import Swoosh.TestAssertions
 
   alias EmberLine.Accounts.User
 
@@ -16,14 +17,16 @@ defmodule EmberLineWeb.SignupLiveTest do
   test "Valid details create an unverified account", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/register")
 
-    form = form(view, "#register-form", user: @valid)
-    render_submit(form)
-    conn = follow_trigger_action(form, conn)
+    assert {:error, {:live_redirect, %{to: "/verify/" <> _token}}} =
+             view |> form("#register-form", user: @valid) |> render_submit()
 
-    assert redirected_to(conn) == ~p"/"
     assert [user] = Ash.read!(User, authorize?: false)
     assert user.full_name == "Ada Lovelace"
     assert is_nil(user.confirmed_at)
+
+    # The screen goes to verify instead of signing in: SignedIn comes from
+    # verify-email. The code is emailed.
+    assert_email_sent(fn email -> email.text_body =~ ~r/\b\d{6}\b/ end)
   end
 
   test "Name is empty", %{conn: conn} do

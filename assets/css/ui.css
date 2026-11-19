@@ -126,6 +126,11 @@
   .ui-pwrow .ui-in { padding-right: 58px; }
   .ui-pwrow button { position: absolute; right: 6px; top: 6px; height: 26px; border: 0; background: var(--surface-2); border-radius: 6px;
     font: 500 12px var(--font-sans); color: var(--muted); padding: 0 8px; cursor: pointer; }
+  .ui-otp { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+  .ui-otp input { height: 50px; text-align: center; font: 600 20px var(--font-mono); color: var(--fg); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+  .ui-otp input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+  .ui-otp input[aria-invalid="true"] { border-color: var(--err-edge); }
   .ui-chk { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; font-weight: 400; color: var(--fg); }
   .ui-chk input { margin-top: 2px; accent-color: var(--accent); }
   .ui-inrow { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }

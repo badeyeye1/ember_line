@@ -17,7 +17,8 @@ defmodule EmberLine.Accounts.User do
 
       confirmation :confirm_new_user do
         monitor_fields [:email]
-        confirm_on_create? true
+        # Sign-up confirms by a 6-digit code (slice verify-email), not a link.
+        confirm_on_create? false
         confirm_on_update? false
         require_interaction? true
         confirmed_at_field :confirmed_at
@@ -39,8 +40,10 @@ defmodule EmberLine.Accounts.User do
         identity_field :email
         hash_provider AshAuthentication.BcryptProvider
         # Command RegisterAccount (slice register): the model's form has no
-        # password confirmation field.
-        register_action_name :register_account
+        # password confirmation field. Registering doesn't sign in: SignedIn
+        # comes from VerifyEmail, so AshAuthentication's register endpoint is
+        # off and the signup screen calls :register_account itself.
+        registration_enabled? false
         confirmation_required? false
 
         resettable do
@@ -66,6 +69,10 @@ defmodule EmberLine.Accounts.User do
   postgres do
     table "users"
     repo EmberLine.Repo
+  end
+
+  code_interface do
+    define :verify_email, args: [:account_id, :code, :device]
   end
 
   actions do
@@ -181,10 +188,10 @@ defmodule EmberLine.Accounts.User do
       change EmberLine.Accounts.Changes.PickAvatarColor
 
       # Hashes the provided password
-      change AshAuthentication.Strategy.Password.HashPasswordChange
+      change {AshAuthentication.Strategy.Password.HashPasswordChange, strategy_name: :password}
 
-      # Generates an authentication token for the user
-      change AshAuthentication.GenerateTokenChange
+      # Emails a 6-digit code to verify the address (slice verify-email).
+      change EmberLine.Accounts.Changes.IssueVerificationCode
 
       change {EmberLine.Changes.RecordEvent,
               type: "AccountRegistered",
@@ -202,11 +209,20 @@ defmodule EmberLine.Accounts.User do
       # The unique index is the guarantee when two sign-ups race; say it in
       # the same words as the EmailHasNoAccount check.
       error_handler &Validations.EmailHasNoAccount.handle_identity_error/2
+    end
 
-      metadata :token, :string do
-        description "A JWT that can be used to authenticate the user."
-        allow_nil? false
-      end
+    # Command VerifyEmail → EmailVerified, SignedIn and (for a first
+    # workspace) WorkspaceCreated. See EmberLine.Accounts.Actions.VerifyEmail.
+    action :verify_email, :map do
+      argument :account_id, :uuid, allow_nil?: false
+      argument :code, :string, allow_nil?: true
+      argument :device, :string, allow_nil?: true, description: "The browser's user agent"
+      run EmberLine.Accounts.Actions.VerifyEmail
+    end
+
+    # The code's state, set when a code is issued or tried. Internal only.
+    update :set_verification_code do
+      accept [:verification_code_hash, :verification_code_sent_at, :verification_attempts]
     end
 
     action :request_password_reset_token do
@@ -300,6 +316,12 @@ defmodule EmberLine.Accounts.User do
     bypass AshAuthentication.Checks.AshAuthenticationInteraction do
       authorize_if always()
     end
+
+    # Anyone may try a code: the code is the proof. Tries are counted and
+    # limited in the action.
+    policy action(:verify_email) do
+      authorize_if always()
+    end
   end
 
   attributes do
@@ -320,6 +342,11 @@ defmodule EmberLine.Accounts.User do
     attribute :full_name, :string, public?: true
     attribute :avatar_color, :string, public?: true
     attribute :registered_at, :utc_datetime_usec, public?: true
+
+    # Added by slice verify-email: the current code, hashed, and its tries.
+    attribute :verification_code_hash, :string, sensitive?: true
+    attribute :verification_code_sent_at, :utc_datetime_usec
+    attribute :verification_attempts, :integer, allow_nil?: false, default: 0
   end
 
   identities do

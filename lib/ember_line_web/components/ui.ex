@@ -747,6 +747,59 @@ defmodule EmberLineWeb.UI do
     """
   end
 
+  @doc """
+  A one-time code as separate digit boxes (`name[0]`..`name[n-1]`). The
+  `.Code` hook moves to the next box as you type, back on Backspace, and
+  spreads a pasted code across the boxes.
+  """
+  attr :name, :string, required: true
+  attr :length, :integer, default: 6
+  attr :label, :string, required: true
+  attr :invalid, :boolean, default: false
+
+  def code_input(assigns) do
+    ~H"""
+    <div id={"#{@name}-boxes"} class="ui-otp" role="group" aria-label={@label} phx-hook=".Code">
+      <input
+        :for={i <- 0..(@length - 1)}
+        type="text"
+        name={"#{@name}[#{i}]"}
+        id={"#{@name}-#{i}"}
+        inputmode="numeric"
+        autocomplete={if i == 0, do: "one-time-code", else: "off"}
+        maxlength="1"
+        aria-label={"Digit #{i + 1}"}
+        aria-invalid={@invalid && "true"}
+        data-digit={i}
+      />
+    </div>
+    <script :type={Phoenix.LiveView.ColocatedHook} name=".Code">
+      export default {
+        mounted() {
+          const boxes = [...this.el.querySelectorAll("input")]
+          boxes.forEach((box, i) => {
+            box.addEventListener("input", () => {
+              box.value = box.value.replace(/\D/g, "").slice(-1)
+              if (box.value && boxes[i + 1]) boxes[i + 1].focus()
+            })
+            box.addEventListener("keydown", (e) => {
+              if (e.key === "Backspace" && !box.value && boxes[i - 1]) boxes[i - 1].focus()
+            })
+            box.addEventListener("paste", (e) => {
+              const digits = (e.clipboardData?.getData("text") || "").replace(/\D/g, "").slice(0, boxes.length)
+              if (!digits) return
+              e.preventDefault()
+              digits.split("").forEach((d, k) => { if (boxes[k]) boxes[k].value = d })
+              boxes[Math.min(boxes.length - 1, digits.length)].focus()
+            })
+          })
+          if (!boxes.some((b) => b.value)) boxes[0].focus()
+        }
+      }
+    </script>
+    """
+  end
+
   @doc "A checkbox with its label to the right."
   attr :field, Phoenix.HTML.FormField, required: true
   attr :rest, :global
