@@ -48,6 +48,9 @@ defmodule EmberLineWeb.Router do
       # Screen: projects (slices create-project, view-projects)
       live "/workspaces/:workspace_id/projects", ProjectsLive
 
+      # Screen: welcome (slice setup-workspace)
+      live "/workspaces/:workspace_id/welcome", WelcomeLive
+
       # Screen: workspace-general (slice save-workspace)
       live "/workspaces/:workspace_id/settings", WorkspaceSettingsLive
 

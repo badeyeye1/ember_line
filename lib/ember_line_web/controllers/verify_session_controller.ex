@@ -27,8 +27,8 @@ defmodule EmberLineWeb.VerifySessionController do
     end
   end
 
-  # The first workspace's projects; setting the workspace up (the welcome
-  # screen, setup-workspace) isn't built yet.
+  # The first workspace's welcome screen (setup-workspace), where the new
+  # member names it and says what they do.
   defp landing(user) do
     case Workspace
          |> Ash.Query.filter(owner_account_id == ^user.id)
@@ -36,7 +36,7 @@ defmodule EmberLineWeb.VerifySessionController do
          |> Ash.Query.limit(1)
          |> Ash.read_one!(actor: user) do
       nil -> ~p"/"
-      workspace -> ~p"/workspaces/#{workspace.id}/projects"
+      workspace -> ~p"/workspaces/#{workspace.id}/welcome"
     end
   end
 end

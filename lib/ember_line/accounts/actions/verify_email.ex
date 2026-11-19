@@ -128,9 +128,7 @@ defmodule EmberLine.Accounts.Actions.VerifyEmail do
     name = WorkspaceName.for(account)
     base = WorkspaceName.slug(name)
 
-    # Serialise sign-ups that want the same slug; the unique index is the guarantee.
-    Repo.query!("SELECT pg_advisory_xact_lock(hashtext($1))", ["workspace-slug:" <> base])
-    slug = free_slug(base)
+    slug = WorkspaceName.free_slug!(base)
 
     workspace =
       Workspace
@@ -151,20 +149,6 @@ defmodule EmberLine.Accounts.Actions.VerifyEmail do
     })
 
     workspace
-  end
-
-  defp free_slug(base) do
-    taken =
-      Workspace
-      |> Ash.Query.filter(slug == ^base or like(slug, ^"#{base}-%"))
-      |> Ash.Query.select([:slug])
-      |> Ash.read!(authorize?: false)
-      |> MapSet.new(& &1.slug)
-
-    Stream.iterate(2, &(&1 + 1))
-    |> Stream.map(&"#{base}-#{&1}")
-    |> then(&Stream.concat([base], &1))
-    |> Enum.find(&(not MapSet.member?(taken, &1)))
   end
 
   defp lock(account_id) do

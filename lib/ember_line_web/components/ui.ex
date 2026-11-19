@@ -577,6 +577,46 @@ defmodule EmberLineWeb.UI do
     """
   end
 
+  @doc "A step indicator: `total` bars, the first `current` of them on."
+  attr :current, :integer, required: true
+  attr :total, :integer, required: true
+
+  def steps(assigns) do
+    ~H"""
+    <div class="ui-steps" aria-label={"Step #{@current} of #{@total}"}>
+      <i :for={i <- 1..@total} class={i <= @current && "on"}></i>
+    </div>
+    """
+  end
+
+  @doc """
+  Choice cards: a radio group shown as cards with a title and a line under
+  it, two per row (the welcome screen's "What do you do?").
+  """
+  attr :field, Phoenix.HTML.FormField, required: true
+  attr :legend, :string, required: true
+  attr :options, :list, required: true, doc: "list of {value, title, description}"
+
+  def choice_cards(assigns) do
+    ~H"""
+    <fieldset class="ui-choice">
+      <legend class="ui-fld">{@legend}</legend>
+      <div class="cards">
+        <label :for={{value, title, description} <- @options}>
+          <input
+            type="radio"
+            name={@field.name}
+            value={value}
+            checked={to_string(@field.value) == value}
+          />
+          <b>{title}</b>
+          <small>{description}</small>
+        </label>
+      </div>
+    </fieldset>
+    """
+  end
+
   # ---------------------------------------------------------------- drawer and dialog
 
   @doc "A drawer from the right edge. Rendered when `show` is true."

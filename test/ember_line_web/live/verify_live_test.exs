@@ -12,6 +12,7 @@ defmodule EmberLineWeb.VerifyLiveTest do
     do: code |> String.graphemes() |> Enum.with_index() |> Map.new(fn {d, i} -> {"#{i}", d} end)
 
   test "New account verifies with a valid code", %{conn: conn} do
+    # ... and lands on the welcome screen (setup-workspace).
     {account, code} = account_registered(full_name: "Ada Lovelace")
     {:ok, view, html} = live(conn, ~p"/verify/#{VerifyLive.token_for(account)}")
     assert html =~ "Check your email"
@@ -20,7 +21,7 @@ defmodule EmberLineWeb.VerifyLiveTest do
     conn = follow_trigger_action(form(view, "#verify-session-form"), conn)
 
     assert "/workspaces/" <> rest = redirected_to(conn)
-    assert String.ends_with?(rest, "/projects")
+    assert String.ends_with?(rest, "/welcome")
     assert get_session(conn, "user_token")
   end
 
