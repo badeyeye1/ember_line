@@ -2,7 +2,7 @@
   "format": "event-model",
   "version": 1,
   "generator": "Event-Model Builder (prototype)",
-  "exportedAt": "2026-11-19T12:06:47.130Z",
+  "exportedAt": "2026-11-19T12:23:51.833Z",
   "project": {
     "id": "pmwldlygxbto7",
     "name": "EmberLine",
@@ -759,7 +759,7 @@
           "kind": "error",
           "title": "Name is empty",
           "given": [],
-          "when": "RegisterAccount(accountId: a-1, fullName: , email: ada@company.com, password: secret123, termsAccepted: true)",
+          "when": "RegisterAccount(accountId: a-1, fullName:, email: ada@company.com, password: secret123, termsAccepted: true)",
           "then": [
             "error: Enter your name so teammates know who's commenting."
           ]
@@ -1284,7 +1284,7 @@
       "feature": "f-accounts",
       "screen": "signin",
       "actor": "Visitor",
-      "story": "A visitor with an account enters their email and password and signs in to their workspace. The browser reports the device (for example \"Chrome on macOS\"), shown later under active sessions.",
+      "story": "A member signs in with their work email and password. A wrong password and an unknown email get the same message, so the screen never reveals who has an account. After 5 failed attempts for an email address within a rolling 15 minutes, that address is locked for 15 minutes from the fifth failure; the lock is checked before the password and before verification. A successful sign-in clears the count. Failures are counted as state per lower-cased email (no event); the browser reports the device.",
       "uiElement": "Sign in button",
       "command": {
         "name": "SignIn",
@@ -1322,7 +1322,7 @@
           ],
           "when": "SignIn(accountId: a-1, email: alex@acme.dev, password: demo1234, keepSignedIn: true, device: Chrome on macOS)",
           "then": [
-            "SignedIn(accountId: a-1, method: password, keepSignedIn: true, keepSignedIn: true, sessionId: tok-1, device: Chrome on macOS)"
+            "SignedIn(accountId: a-1, method: password, keepSignedIn: true, sessionId: tok-1, device: Chrome on macOS)"
           ]
         },
         {
@@ -1334,7 +1334,7 @@
           ],
           "when": "SignIn(accountId: a-1, email: alex@acme.dev, password: wrong, keepSignedIn: true)",
           "then": [
-            "error: That password doesn't match. Try again or reset it."
+            "error: That email and password don't match. Try again or reset your password."
           ]
         },
         {
@@ -1344,7 +1344,7 @@
             "AccountRegistered(accountId: a-1, email: alex@acme.dev)",
             "EmailVerified(accountId: a-1)"
           ],
-          "when": "SignIn(accountId: a-1, email: alex@acme.dev, password: , keepSignedIn: true)",
+          "when": "SignIn(accountId: a-1, email: alex@acme.dev, password:, keepSignedIn: true)",
           "then": [
             "error: Enter your password."
           ]
@@ -1364,7 +1364,7 @@
           "given": [],
           "when": "SignIn(email: nobody@company.com, password: demo1234, keepSignedIn: true)",
           "then": [
-            "error: No account uses nobody@company.com. Check the address, or create an account."
+            "error: That email and password don't match. Try again or reset your password."
           ]
         },
         {
@@ -1383,11 +1383,63 @@
           "title": "Too many wrong passwords",
           "given": [
             "AccountRegistered(accountId: a-1, email: alex@acme.dev)",
-            "5 wrong passwords for alex@acme.dev in the last 15 minutes"
+            "EmailVerified(accountId: a-1)",
+            "5 failed sign-ins for alex@acme.dev, the last one 2 minutes ago"
           ],
           "when": "SignIn(accountId: a-1, email: alex@acme.dev, password: demo1234, keepSignedIn: true, device: Chrome on macOS)",
           "then": [
             "error: Too many attempts. Try again in 15 minutes, or reset your password."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Too many tries on an email with no account",
+          "given": [
+            "5 failed sign-ins for nobody@company.com, the last one 2 minutes ago"
+          ],
+          "when": "SignIn(email: nobody@company.com, password: demo1234, keepSignedIn: true, device: Chrome on macOS)",
+          "then": [
+            "error: Too many attempts. Try again in 15 minutes, or reset your password."
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "The lock lifts 15 minutes after the fifth failure",
+          "given": [
+            "AccountRegistered(accountId: a-1, email: alex@acme.dev)",
+            "EmailVerified(accountId: a-1)",
+            "5 failed sign-ins for alex@acme.dev, the fifth one 15 minutes ago"
+          ],
+          "when": "SignIn(accountId: a-1, email: alex@acme.dev, password: demo1234, keepSignedIn: true, device: Chrome on macOS)",
+          "then": [
+            "SignedIn(accountId: a-1, method: password, keepSignedIn: true, sessionId: tok-1, device: Chrome on macOS)",
+            "the failure count for alex@acme.dev is cleared"
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "A successful sign-in clears the count",
+          "given": [
+            "AccountRegistered(accountId: a-1, email: alex@acme.dev)",
+            "EmailVerified(accountId: a-1)",
+            "4 failed sign-ins for alex@acme.dev in the last 15 minutes"
+          ],
+          "when": "SignIn(accountId: a-1, email: alex@acme.dev, password: demo1234, keepSignedIn: true, device: Chrome on macOS)",
+          "then": [
+            "SignedIn(accountId: a-1, method: password, keepSignedIn: true, sessionId: tok-1, device: Chrome on macOS)",
+            "the failure count for alex@acme.dev is cleared: one more wrong password is failure 1, not 5"
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "Email case doesn't matter for the count",
+          "given": [
+            "4 failed sign-ins for alex@acme.dev in the last 15 minutes"
+          ],
+          "when": "SignIn(email: Alex@Acme.dev, password: wrong, keepSignedIn: true, device: Chrome on macOS)",
+          "then": [
+            "error: That email and password don't match. Try again or reset your password.",
+            "this is failure 5 for alex@acme.dev: the next attempt is locked"
           ]
         }
       ]
@@ -1665,7 +1717,7 @@
           "kind": "error",
           "title": "Email is empty",
           "given": [],
-          "when": "RequestPasswordReset(email: )",
+          "when": "RequestPasswordReset(email:)",
           "then": [
             "error: Enter your work email, like name@company.com."
           ]
@@ -2258,7 +2310,7 @@
       "feature": "f-accounts",
       "screen": "welcome",
       "actor": "Owner",
-      "story": "The new owner names their workspace and says what they do. The name gives the workspace its web address (with -2, -3 if it's taken); what they do goes on their profile so teammates know their role. The browser supplies the time zone; new workspaces start on the first stack in the list.",
+      "story": "The new owner names their workspace and says what they do. The name gives the workspace its web address (with -2, -3 if it's taken); what they do goes on their profile. The browser supplies the time zone; a missing or unknown one is stored as UTC. A workspace with no stack yet starts on the first stack in the list; one chosen in settings is kept.",
       "uiElement": "Welcome form",
       "command": {
         "name": "SetUpWorkspace",
@@ -2346,9 +2398,9 @@
         },
         {
           "kind": "edge",
-          "title": "Saving again overwrites the earlier details",
+          "title": "Saving again updates the name and title",
           "given": [
-            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Studio, slug: acme-studio, savedBy: u-1)"
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Studio, slug: acme-studio, defaultStack: Elixir: Phoenix LiveView + Ash + AshCommanded, savedBy: u-1)"
           ],
           "when": "SetUpWorkspace(workspaceId: w-1, name: Acme Labs, savedBy: u-1, title: Engineering, timeZone: Europe/London)",
           "then": [
@@ -2367,6 +2419,43 @@
           "then": [
             "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Studio, slug: acme-studio-2, defaultStack: Elixir: Phoenix LiveView + Ash + AshCommanded, savedBy: u-1)",
             "ProfileSaved(accountId: u-1, title: Product, timeZone: Europe/London)"
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "Unknown time zone falls back to UTC",
+          "given": [
+            "WorkspaceCreated(workspaceId: w-1)"
+          ],
+          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme Studio, savedBy: u-1, title: Product, timeZone: Mars/Olympus)",
+          "then": [
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Studio, slug: acme-studio, defaultStack: Elixir: Phoenix LiveView + Ash + AshCommanded, savedBy: u-1)",
+            "ProfileSaved(accountId: u-1, title: Product, timeZone: UTC)"
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "Missing time zone falls back to UTC",
+          "given": [
+            "WorkspaceCreated(workspaceId: w-1)"
+          ],
+          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme Studio, savedBy: u-1, title: Product, timeZone: )",
+          "then": [
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Studio, slug: acme-studio, defaultStack: Elixir: Phoenix LiveView + Ash + AshCommanded, savedBy: u-1)",
+            "ProfileSaved(accountId: u-1, title: Product, timeZone: UTC)"
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "Saving again keeps a stack chosen in settings",
+          "given": [
+            "WorkspaceCreated(workspaceId: w-1)",
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Studio, slug: acme-studio, defaultStack: Elixir: Phoenix LiveView + Ash + Commanded, savedBy: u-1)"
+          ],
+          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme Labs, savedBy: u-1, title: Engineering, timeZone: Europe/London)",
+          "then": [
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Labs, slug: acme-labs, defaultStack: Elixir: Phoenix LiveView + Ash + Commanded, savedBy: u-1)",
+            "ProfileSaved(accountId: u-1, title: Engineering, timeZone: Europe/London)"
           ]
         }
       ]
@@ -2821,7 +2910,7 @@
           "kind": "error",
           "title": "Name is missing",
           "given": [],
-          "when": "CreateProject(name: , sourceType: new)",
+          "when": "CreateProject(name:, sourceType: new)",
           "then": [
             "error: ProjectNameRequired"
           ]
@@ -2830,7 +2919,7 @@
           "kind": "error",
           "title": "GitHub source without a repository URL",
           "given": [],
-          "when": "CreateProject(name: Billing API, sourceType: github, repoUrl: )",
+          "when": "CreateProject(name: Billing API, sourceType: github, repoUrl:)",
           "then": [
             "error: RepoUrlRequired"
           ]
@@ -4060,7 +4149,7 @@
           "kind": "error",
           "title": "Name is empty",
           "given": [],
-          "when": "AddFeature(featureId: f-9, projectId: p-1, name: , definedBy: u-1)",
+          "when": "AddFeature(featureId: f-9, projectId: p-1, name:, definedBy: u-1)",
           "then": [
             "error: Give the feature a name."
           ]
@@ -4339,7 +4428,7 @@
           "given": [
             "FeatureDefined(featureId: f-1)"
           ],
-          "when": "RenameFeature(featureId: f-1, name: , renamedBy: u-1)",
+          "when": "RenameFeature(featureId: f-1, name:, renamedBy: u-1)",
           "then": [
             "error: Give the feature a name."
           ]
@@ -4396,7 +4485,7 @@
           "kind": "success",
           "title": "Team becomes the owner",
           "given": [
-            "FeatureDefined(featureId: f-1, owner: )"
+            "FeatureDefined(featureId: f-1, owner:)"
           ],
           "when": "AssignFeatureOwner(featureId: f-1, owner: Identity team, assignedBy: u-1)",
           "then": [
@@ -4409,9 +4498,9 @@
           "given": [
             "FeatureOwnerAssigned(featureId: f-1, owner: Identity team)"
           ],
-          "when": "AssignFeatureOwner(featureId: f-1, owner: , assignedBy: u-1)",
+          "when": "AssignFeatureOwner(featureId: f-1, owner:, assignedBy: u-1)",
           "then": [
-            "FeatureOwnerAssigned(featureId: f-1, owner: )"
+            "FeatureOwnerAssigned(featureId: f-1, owner:)"
           ]
         },
         {
@@ -5643,7 +5732,7 @@
           "given": [
             "ModelDerived(sliceCount: 2)"
           ],
-          "when": "AddSlice(projectId: p-1, name: )",
+          "when": "AddSlice(projectId: p-1, name:)",
           "then": [
             "error: SliceNameRequired"
           ]
@@ -10943,7 +11032,7 @@
           "given": [
             "SliceAdded(sliceId: s-1)"
           ],
-          "when": "AddScenario(sliceId: s-1, kind: error, title: Name is empty, when: CreateProject(name: ), then: [error: NameRequired])",
+          "when": "AddScenario(sliceId: s-1, kind: error, title: Name is empty, when: CreateProject(name:), then: [error: NameRequired])",
           "then": [
             "ScenarioAdded(sliceId: s-1, kind: error, title: Name is empty)"
           ]
@@ -10963,7 +11052,7 @@
           "given": [
             "SliceAdded(sliceId: s-1)"
           ],
-          "when": "AddScenario(sliceId: s-1, kind: success, title: )",
+          "when": "AddScenario(sliceId: s-1, kind: success, title:)",
           "then": [
             "error: ScenarioTitleRequired"
           ]
@@ -10974,7 +11063,7 @@
           "given": [
             "SliceAdded(sliceId: s-1)"
           ],
-          "when": "AddScenario(sliceId: s-1, kind: success, title: Happy path, when: )",
+          "when": "AddScenario(sliceId: s-1, kind: success, title: Happy path, when:)",
           "then": [
             "error: ScenarioWhenRequired"
           ]
@@ -11060,7 +11149,7 @@
           "given": [
             "SliceAdded(sliceId: s-1)"
           ],
-          "when": "EditSlice(sliceId: s-1, name: , editedBy: u-1)",
+          "when": "EditSlice(sliceId: s-1, name:, editedBy: u-1)",
           "then": [
             "error: NameRequired"
           ]
@@ -11545,7 +11634,7 @@
           "given": [
             "ScenarioAdded(scenarioId: sc-1)"
           ],
-          "when": "DrawScenario(scenarioId: sc-1, html: )",
+          "when": "DrawScenario(scenarioId: sc-1, html:)",
           "then": [
             "error: DrawingEmpty"
           ]
