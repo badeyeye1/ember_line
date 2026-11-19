@@ -5,6 +5,7 @@ defmodule EmberLineWeb.VerifyLiveTest do
   import EmberLine.Given.Account
   import Phoenix.LiveViewTest
 
+  alias EmberLine.Accounts.User
   alias EmberLineWeb.VerifyLive
 
   defp digits(code),
@@ -21,6 +22,21 @@ defmodule EmberLineWeb.VerifyLiveTest do
     assert "/workspaces/" <> rest = redirected_to(conn)
     assert String.ends_with?(rest, "/projects")
     assert get_session(conn, "user_token")
+  end
+
+  test "Shows the email the code was sent to", %{conn: conn} do
+    {account, _code} = account_registered(email: "ada@company.com")
+    {:ok, _view, html} = live(conn, ~p"/verify/#{VerifyLive.token_for(account)}")
+
+    assert html =~ "We sent a 6-digit code to <b>ada@company.com</b>"
+  end
+
+  test "No account is waiting to verify: a verified account sees nothing to verify", %{conn: conn} do
+    {account, code} = account_registered()
+    {:ok, _} = User.verify_email(account.id, code, nil)
+    {:ok, _view, html} = live(conn, ~p"/verify/#{VerifyLive.token_for(account)}")
+
+    assert html =~ "Nothing to verify"
   end
 
   test "Code is wrong", %{conn: conn} do

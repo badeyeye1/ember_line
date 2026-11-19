@@ -5,8 +5,8 @@ defmodule EmberLineWeb.VerifyLive do
   code starts a session, which the screen hands to VerifySessionController
   to put in the browser's session.
 
-  Showing the address the code went to belongs to view-verify, and "Resend
-  the code" to resend-code; neither is built yet.
+  The address the code went to comes from the PendingVerification read model
+  (slice view-verify). "Resend the code" is resend-code, not built yet.
   """
   use EmberLineWeb, :live_view
 
@@ -26,10 +26,14 @@ defmodule EmberLineWeb.VerifyLive do
         {:error, _} -> nil
       end
 
+    # Read model PendingVerification: nothing waiting means "Nothing to verify".
+    pending = account_id && User.pending_verification!(account_id, authorize?: false)
+
     {:ok,
      assign(socket,
        page_title: "Check your email",
-       account_id: account_id,
+       account_id: pending && pending.id,
+       pending: pending,
        user_agent: get_connect_info(socket, :user_agent),
        error: nil,
        session_token: nil
@@ -77,7 +81,9 @@ defmodule EmberLineWeb.VerifyLive do
     ~H"""
     <Layouts.auth flash={@flash}>
       <h1>Check your email</h1>
-      <p class="sub">We sent a 6-digit code to your email. Enter it to confirm your address.</p>
+      <p class="sub">
+        We sent a 6-digit code to <b>{@pending.email}</b>. Enter it to confirm your address.
+      </p>
 
       <form id="verify-form" phx-submit="verify">
         <.code_input name="code" label="6-digit code" invalid={@error != nil} />
