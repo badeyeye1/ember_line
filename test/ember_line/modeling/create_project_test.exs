@@ -3,6 +3,7 @@ defmodule EmberLine.Modeling.CreateProjectTest do
   use EmberLine.DataCase, async: false
   use EmberLine.EventModelCase
 
+  alias EmberLine.Accounts.Workspace
   alias EmberLine.Modeling.Errors
   alias EmberLine.Modeling.Project
   alias EmberLine.Modeling.Project.{CreateProject, ProjectCreated}
@@ -103,7 +104,7 @@ defmodule EmberLine.Modeling.CreateProjectTest do
       )
     end
 
-    assert Errors.code(:project_name_required) == "ProjectNameRequired"
+    assert Errors.message(:project_name_required) == "Give the project a name."
   end
 
   test "GitHub source without a repository URL", ctx do
@@ -116,7 +117,8 @@ defmodule EmberLine.Modeling.CreateProjectTest do
       )
     end
 
-    assert Errors.code(:repo_url_required) == "RepoUrlRequired"
+    assert Errors.message(:repo_url_required) ==
+             "Paste the GitHub repository address, like https://github.com/owner/repo."
   end
 
   @tag skip:
@@ -143,6 +145,54 @@ defmodule EmberLine.Modeling.CreateProjectTest do
              Enum.sort([{ctx.p1, "Edgemastery"}, {ctx.p2, "Edgemastery"}])
   end
 
+  test "Stack isn't one of the listed ones", ctx do
+    assert_decides(
+      Project,
+      [],
+      create(ctx,
+        name: "Edgemastery",
+        source_type: :new,
+        stack: "Rails",
+        persistence_mode: :event_sourced
+      ),
+      {:error, :stack_not_listed}
+    )
+
+    assert Errors.message(:stack_not_listed) == "Pick a stack from the list."
+  end
+
+  test "SourceType isn't one of the listed ones", ctx do
+    for source <- [:dropbox, nil] do
+      assert_decides(
+        Project,
+        [],
+        create(ctx,
+          name: "Edgemastery",
+          source_type: source,
+          stack: "Other",
+          persistence_mode: :event_sourced
+        ),
+        {:error, :source_type_not_listed}
+      )
+    end
+
+    assert Errors.message(:source_type_not_listed) ==
+             "Pick where the code comes from: start fresh, a folder on this computer, or GitHub."
+  end
+
+  # Not a model scenario: every listed stack is accepted.
+  test "every listed stack is accepted", ctx do
+    for stack <- Workspace.stacks() do
+      assert [%ProjectCreated{stack: ^stack}] =
+               List.wrap(
+                 Project.execute(
+                   %Project{},
+                   create(ctx, name: "E", source_type: :new, stack: stack)
+                 )
+               )
+    end
+  end
+
   # Not a model scenario: the "only signed-in users create projects" rule,
   # enforced on the write side until Member roles exist.
   test "a command without createdBy is NotAllowed", ctx do
@@ -152,6 +202,8 @@ defmodule EmberLine.Modeling.CreateProjectTest do
       create(ctx, name: "Edgemastery", source_type: :new, created_by: nil),
       {:error, :not_allowed}
     )
+
+    assert Errors.message(:not_allowed) == "Only editors and admins can create projects."
   end
 
   # Not a model scenario: a repeated dispatch of the same command (a double

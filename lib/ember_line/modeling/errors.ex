@@ -1,29 +1,26 @@
 defmodule EmberLine.Modeling.Errors do
   @moduledoc """
-  The model's error codes for rejected Project and Slice commands, and the
-  words the screens show for them. One place, so screens and tests agree.
+  What the screens show when a Project or Slice command is rejected: each
+  reason maps to the exact sentence its scenario gives. One place, so screens
+  and tests agree.
   """
 
-  @errors %{
+  @messages %{
     # create-project
-    project_name_required: {"ProjectNameRequired", "Give the project a name."},
-    repo_url_required: {"RepoUrlRequired", "Add the GitHub repository URL."},
-    not_allowed: {"NotAllowed", "You don't have permission to do that."},
-    # delete-project: its scenarios give the screen's words, not a code.
-    project_not_found: {nil, "That project doesn't exist."}
+    project_name_required: "Give the project a name.",
+    repo_url_required: "Paste the GitHub repository address, like https://github.com/owner/repo.",
+    not_allowed: "Only editors and admins can create projects.",
+    stack_not_listed: "Pick a stack from the list.",
+    source_type_not_listed:
+      "Pick where the code comes from: start fresh, a folder on this computer, or GitHub.",
+    # delete-project
+    delete_not_allowed: "Only editors and admins can delete a project.",
+    project_not_found: "That project doesn't exist."
   }
-
-  @doc "The model's error code, e.g. `ProjectNameRequired`."
-  def code(reason), do: @errors |> Map.fetch!(reason) |> elem(0)
 
   @doc "What the screen shows for the error."
   def message({:confirm_delete, name}),
     do: "Click Delete again to delete #{name}. This can't be undone."
 
-  def message(reason) do
-    case Map.fetch(@errors, reason) do
-      {:ok, {_code, message}} -> message
-      :error -> "Something went wrong. Try again."
-    end
-  end
+  def message(reason), do: Map.get(@messages, reason, "Something went wrong. Try again.")
 end

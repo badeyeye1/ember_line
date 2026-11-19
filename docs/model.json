@@ -2,7 +2,7 @@
   "format": "event-model",
   "version": 1,
   "generator": "Event-Model Builder (prototype)",
-  "exportedAt": "2026-11-19T12:23:51.833Z",
+  "exportedAt": "2026-11-19T13:04:12.594Z",
   "project": {
     "id": "pmwldlygxbto7",
     "name": "EmberLine",
@@ -1524,6 +1524,15 @@
           "then": [
             "SignedIn(accountId: a-1, method: oauth) recorded once more as a new sign-in; the screen button is disabled to prevent this"
           ]
+        },
+        {
+          "kind": "error",
+          "title": "Provider isn't one of the listed ones",
+          "given": [],
+          "when": "SignInWithProvider(accountId: a-1, provider: twitter, device: Chrome on macOS)",
+          "then": [
+            "error: Sign in with GitHub or Google."
+          ]
         }
       ]
     },
@@ -2560,6 +2569,15 @@
           ],
           "when": "InviteMembers(workspaceId: w-1, emails: [NIA@Company.com], role: Editor, invitedBy: u-1)",
           "then": []
+        },
+        {
+          "kind": "error",
+          "title": "Role isn't one of the listed ones",
+          "given": [],
+          "when": "InviteMembers(workspaceId: w-1, emails: [nia@acme.dev], role: Superuser, invitedBy: u-1)",
+          "then": [
+            "error: Pick a role from the list."
+          ]
         }
       ]
     },
@@ -2912,7 +2930,7 @@
           "given": [],
           "when": "CreateProject(name:, sourceType: new)",
           "then": [
-            "error: ProjectNameRequired"
+            "error: Give the project a name."
           ]
         },
         {
@@ -2921,7 +2939,7 @@
           "given": [],
           "when": "CreateProject(name: Billing API, sourceType: github, repoUrl:)",
           "then": [
-            "error: RepoUrlRequired"
+            "error: Paste the GitHub repository address, like https://github.com/owner/repo."
           ]
         },
         {
@@ -2930,7 +2948,7 @@
           "given": [],
           "when": "CreateProject(name: Edgemastery) by a Viewer",
           "then": [
-            "error: NotAllowed"
+            "error: Only editors and admins can create projects."
           ]
         },
         {
@@ -2942,6 +2960,24 @@
           "when": "CreateProject(name: Edgemastery, sourceType: new)",
           "then": [
             "ProjectCreated(projectId: p-2, name: Edgemastery) · both projects exist, told apart by id"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Stack isn't one of the listed ones",
+          "given": [],
+          "when": "CreateProject(name: Edgemastery, sourceType: new, stack: Rails, persistenceMode: event_sourced)",
+          "then": [
+            "error: Pick a stack from the list."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "SourceType isn't one of the listed ones",
+          "given": [],
+          "when": "CreateProject(name: Edgemastery, sourceType: dropbox, stack: Other, persistenceMode: event_sourced)",
+          "then": [
+            "error: Pick where the code comes from: start fresh, a folder on this computer, or GitHub."
           ]
         }
       ]
@@ -3103,7 +3139,7 @@
           "given": [],
           "when": "OpenSampleProject(projectId: p-9) by a signed-out visitor",
           "then": [
-            "error: NotSignedIn"
+            "error: Sign in to open the sample project."
           ]
         }
       ]
@@ -3127,8 +3163,13 @@
           "fields": [
             "prototypeId: uuid",
             "projectId: uuid",
-            "fileNames: list",
+            "source: enum(files|paste)",
+            "fileNames: array(string)",
             "fileCount: integer",
+            "skippedCount: integer",
+            "ignoredFileNames: array(string)",
+            "interactive: boolean",
+            "loadedBy: uuid",
             "loadedAt: utc_datetime"
           ]
         },
@@ -3154,7 +3195,7 @@
         "handles": [
           {
             "event": "PrototypeLoaded",
-            "does": "set the file names as the screen tabs, record file count and clear any split state"
+            "does": "replace the entry: screenNames = fileNames, fileCount, skippedCount (for \"Loaded the first 80 of 95 files.\"), ignoredFileNames (for the ignored-files note), interactive; isSplit = false"
           },
           {
             "event": "PrototypeSplitIntoPages",
@@ -3171,10 +3212,13 @@
         "fields": [
           "prototypeId: uuid",
           "projectId: uuid",
-          "screenNames: list",
+          "screenNames: array(string)",
           "fileCount: integer",
           "isSplit: boolean",
-          "pageCount: integer"
+          "pageCount: integer",
+          "skippedCount: integer",
+          "ignoredFileNames: array(string)",
+          "interactive: boolean"
         ]
       },
       "specs": [
@@ -3247,15 +3291,21 @@
       "feature": "f-modeling",
       "screen": "board",
       "actor": "Member",
-      "story": "An editor drops in files or pastes the HTML of a prototype so the team can see its screens and model them.",
+      "story": "An editor drops in a prototype (HTML files, screenshots, or a .zip of them) or pastes its HTML, so the team can see its screens and model them. Usable files are .html/.htm, .png/.jpg/.webp and .zip archives of those; anything else is ignored and named in a note. Up to 80 files are kept, the first 80 by name; a file may be up to 20 MB and a load up to 100 MB in total. A prototype is interactive when it's a single HTML file whose links or scripts move between screens without loading another file; only those can be split into pages. The files themselves are stored in a PrototypeFile table (state stored, keyed by prototypeId: name, type, content), replaced when the prototype is loaded again; they're never put in an event. For now any signed-in member of the workspace can load one; once roles exist, only editors and admins.",
       "uiElement": "Choose files / paste HTML",
       "command": {
         "name": "LoadPrototype",
         "fields": [
+          "prototypeId: uuid",
           "projectId: uuid",
-          "fileNames: list",
-          "fileCount: integer",
-          "source: enum(files|paste)"
+          "source: enum(files|paste)",
+          "fileNames: array(string)",
+          "unreadableFileNames: array(string)",
+          "ignoredFileNames: array(string)",
+          "interactive: boolean",
+          "largestFileBytes: integer",
+          "totalBytes: integer",
+          "loadedBy: uuid"
         ]
       },
       "produces": [
@@ -3264,8 +3314,13 @@
           "fields": [
             "prototypeId: uuid",
             "projectId: uuid",
-            "fileNames: list",
+            "source: enum(files|paste)",
+            "fileNames: array(string)",
             "fileCount: integer",
+            "skippedCount: integer",
+            "ignoredFileNames: array(string)",
+            "interactive: boolean",
+            "loadedBy: uuid",
             "loadedAt: utc_datetime"
           ]
         }
@@ -3277,57 +3332,115 @@
         {
           "kind": "success",
           "title": "Load several HTML files",
-          "given": [],
-          "when": "LoadPrototype(projectId: pr-1, fileNames: [a.html, b.html], fileCount: 2, source: files)",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [a.html, b.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, largestFileBytes: 40000, totalBytes: 70000, loadedBy: u-1)",
           "then": [
-            "PrototypeLoaded(prototypeId: p-1, fileCount: 2)"
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [a.html, b.html], fileCount: 2, skippedCount: 0, ignoredFileNames: [], interactive: false, loadedBy: u-1)"
           ]
         },
         {
           "kind": "success",
-          "title": "Paste HTML",
-          "given": [],
-          "when": "LoadPrototype(projectId: pr-1, fileNames: [pasted-prototype.html], fileCount: 1, source: paste)",
+          "title": "Paste the HTML of an interactive prototype",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: paste, fileNames: [pasted-prototype.html], unreadableFileNames: [], ignoredFileNames: [], interactive: true, largestFileBytes: 900000, totalBytes: 900000, loadedBy: u-1)",
           "then": [
-            "PrototypeLoaded(fileNames: [pasted-prototype.html], fileCount: 1)"
+            "PrototypeLoaded(prototypeId: p-1, source: paste, fileNames: [pasted-prototype.html], fileCount: 1, skippedCount: 0, interactive: true, loadedBy: u-1)"
+          ]
+        },
+        {
+          "kind": "success",
+          "title": "Usable files mixed with others",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [home.html, home.png], unreadableFileNames: [], ignoredFileNames: [notes.txt, logo.svg], interactive: false, largestFileBytes: 300000, totalBytes: 400000, loadedBy: u-1)",
+          "then": [
+            "PrototypeLoaded(prototypeId: p-1, fileNames: [home.html, home.png], fileCount: 2, ignoredFileNames: [notes.txt, logo.svg], loadedBy: u-1)",
+            "the board notes: Ignored notes.txt and logo.svg: only HTML, screenshots and .zip files are used."
           ]
         },
         {
           "kind": "error",
           "title": "No usable screens",
-          "given": [],
-          "when": "LoadPrototype(projectId: pr-1, fileNames: [notes.txt], fileCount: 0, source: files)",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [], unreadableFileNames: [], ignoredFileNames: [notes.txt], interactive: false, largestFileBytes: 2000, totalBytes: 2000, loadedBy: u-1)",
           "then": [
-            "error: NoScreensFound"
+            "error: We couldn't find any screens in those files. Drop HTML files, screenshots or a .zip of the prototype."
           ]
         },
         {
           "kind": "error",
           "title": "Files unreadable",
-          "given": [],
-          "when": "LoadPrototype(projectId: pr-1, fileNames: [broken.zip], fileCount: 0, source: files)",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [], unreadableFileNames: [broken.zip], ignoredFileNames: [], interactive: false, largestFileBytes: 5000, totalBytes: 5000, loadedBy: u-1)",
           "then": [
-            "error: FilesUnreadable"
+            "error: We couldn't read broken.zip. Check the file and try again."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "A file is too large",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [video-walkthrough.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, largestFileBytes: 26000000, totalBytes: 26000000, loadedBy: u-1)",
+          "then": [
+            "error: video-walkthrough.html is larger than 20 MB. Remove embedded videos or large images and try again."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Too much in one load",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [60 files], unreadableFileNames: [], ignoredFileNames: [], interactive: false, largestFileBytes: 4000000, totalBytes: 120000000, loadedBy: u-1)",
+          "then": [
+            "error: These files add up to more than 100 MB. Load fewer at a time, or remove large images."
           ]
         },
         {
           "kind": "edge",
           "title": "More files than the limit",
-          "given": [],
-          "when": "LoadPrototype(projectId: pr-1, fileCount: 95)",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [95 files, page-01.html … page-95.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, largestFileBytes: 50000, totalBytes: 3000000, loadedBy: u-1)",
           "then": [
-            "PrototypeLoaded(fileCount: 80)"
+            "PrototypeLoaded(prototypeId: p-1, fileNames: [page-01.html … page-80.html], fileCount: 80, skippedCount: 15, loadedBy: u-1)",
+            "the board says: Loaded the first 80 of 95 files."
           ]
         },
         {
           "kind": "edge",
-          "title": "Loading again replaces the earlier prototype",
+          "title": "Loading again keeps the prototype's id",
           "given": [
-            "PrototypeLoaded(prototypeId: p-1, fileCount: 3)"
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileCount: 3)"
           ],
-          "when": "LoadPrototype(projectId: pr-1, fileNames: [c.html], fileCount: 1, source: files)",
+          "when": "LoadPrototype(prototypeId: p-9, projectId: pr-1, source: files, fileNames: [c.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, largestFileBytes: 20000, totalBytes: 20000, loadedBy: u-1)",
           "then": [
-            "PrototypeLoaded(prototypeId: p-1, fileCount: 1)"
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [c.html], fileCount: 1, loadedBy: u-1)",
+            "the stored files for p-1 are replaced by c.html"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Viewers and commenters can't load a prototype (once roles exist)",
+          "given": [
+            "ProjectCreated(projectId: pr-1)",
+            "MemberRoleChanged(accountId: u-7, role: Viewer)"
+          ],
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [a.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, largestFileBytes: 4000, totalBytes: 4000, loadedBy: u-7)",
+          "then": [
+            "error: Only editors can load a prototype."
           ]
         }
       ]
@@ -3381,7 +3494,7 @@
           "given": [],
           "when": "SplitPrototype(prototypeId: p-1)",
           "then": [
-            "error: InteractivePrototypeRequired"
+            "error: Load an interactive HTML prototype first: only those can be split into pages."
           ]
         },
         {
@@ -3392,7 +3505,7 @@
           ],
           "when": "SplitPrototype(prototypeId: p-1)",
           "then": [
-            "error: InteractivePrototypeRequired"
+            "error: Load an interactive HTML prototype first: only those can be split into pages."
           ]
         },
         {
@@ -3403,7 +3516,7 @@
           ],
           "when": "SplitPrototype(prototypeId: p-1) finds 0 pages",
           "then": [
-            "error: NoPagesFound"
+            "error: No separate pages found. Derive the model from the whole file instead."
           ]
         },
         {
@@ -3414,7 +3527,7 @@
           ],
           "when": "SplitPrototype(prototypeId: p-1) times out",
           "then": [
-            "error: PrototypeDidNotRespond"
+            "error: The prototype didn't respond while it was being split. Reload it and try again."
           ]
         },
         {
@@ -3480,7 +3593,7 @@
           ],
           "when": "UndoSplit(prototypeId: p-1)",
           "then": [
-            "error: NotSplit"
+            "error: There's no split to undo."
           ]
         },
         {
@@ -3489,7 +3602,7 @@
           "given": [],
           "when": "UndoSplit(prototypeId: p-1)",
           "then": [
-            "error: NotSplit"
+            "error: There's no split to undo."
           ]
         },
         {
@@ -3501,7 +3614,7 @@
           ],
           "when": "UndoSplit(prototypeId: p-1)",
           "then": [
-            "error: NotSplit"
+            "error: There's no split to undo."
           ]
         },
         {
@@ -3586,7 +3699,7 @@
           "given": [],
           "when": "DeriveModel(projectId: p-1, prototypeId: p-1)",
           "then": [
-            "error: PrototypeNotLoaded"
+            "error: Upload the prototype first, then derive the model."
           ]
         },
         {
@@ -3597,7 +3710,7 @@
           ],
           "when": "DeriveModel(projectId: p-1, prototypeId: p-1) cannot reach Claude",
           "then": [
-            "error: DerivationUnavailable"
+            "error: Claude can't be reached right now. Try again in a minute."
           ]
         },
         {
@@ -3621,6 +3734,15 @@
           "when": "DeriveModel(projectId: p-1, prototypeId: p-1) then Stop",
           "then": [
             "no events recorded"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Stack isn't one of the listed ones",
+          "given": [],
+          "when": "DeriveModel(projectId: p-1, prototypeId: p-1, stack: Rails)",
+          "then": [
+            "error: Pick a stack from the list."
           ]
         }
       ]
@@ -3851,7 +3973,7 @@
           ],
           "when": "IdentifyFeatures(projectId: p-1, proposalId: fp-1, requestedBy: u-1) cannot reach Claude",
           "then": [
-            "error: DerivationUnavailable"
+            "error: Claude can't be reached right now. Try again in a minute."
           ]
         },
         {
@@ -4742,7 +4864,7 @@
           ],
           "when": "DeriveFeature(featureId: f-2, projectId: p-1, prototypeId: pr-1, derivationId: d-7, derivedBy: u-1) cannot reach Claude",
           "then": [
-            "error: DerivationUnavailable"
+            "error: Claude can't be reached right now. Try again in a minute."
           ]
         },
         {
@@ -5734,7 +5856,7 @@
           ],
           "when": "AddSlice(projectId: p-1, name:)",
           "then": [
-            "error: SliceNameRequired"
+            "error: Give the slice a name."
           ]
         },
         {
@@ -5745,7 +5867,7 @@
           ],
           "when": "AddSlice(projectId: p-1, name: Archive, pattern: batch)",
           "then": [
-            "error: InvalidPattern"
+            "error: Pick a pattern: state change, state view or automation."
           ]
         },
         {
@@ -5756,7 +5878,7 @@
           ],
           "when": "AddSlice(projectId: p-1, name: One more)",
           "then": [
-            "error: SliceLimitReached"
+            "error: This board has 150 slices, the most it can hold. Split the work into features or another project."
           ]
         },
         {
@@ -5820,7 +5942,7 @@
           "given": [],
           "when": "ImportModel(projectId: p-1, fileName: notes.json, content: not json)",
           "then": [
-            "error: InvalidModelFile"
+            "error: That file isn't JSON. Choose a .json file saved with Export JSON."
           ]
         },
         {
@@ -5829,7 +5951,7 @@
           "given": [],
           "when": "ImportModel(projectId: p-1, content: {\"hello\": 1})",
           "then": [
-            "error: NotAnEventModel"
+            "error: That file isn't an event model. Choose a .json file saved with Export JSON."
           ]
         },
         {
@@ -5920,7 +6042,7 @@
           ],
           "when": "ExportModel(projectId: p-1, format: pdf)",
           "then": [
-            "error: UnsupportedFormat"
+            "error: Export as JSON, CSV or SVG."
           ]
         },
         {
@@ -5929,7 +6051,7 @@
           "given": [],
           "when": "ExportModel(projectId: p-1, format: json)",
           "then": [
-            "error: ModelNotFound"
+            "error: There's nothing to export yet. Derive or add some slices first."
           ]
         },
         {
@@ -6369,7 +6491,7 @@
           "given": [],
           "when": "query SliceDetails(sliceId: unknown)",
           "then": [
-            "error: SliceNotFound"
+            "error: That slice no longer exists. It may have been deleted."
           ]
         }
       ]
@@ -6436,7 +6558,7 @@
           "given": [],
           "when": "SetSliceStatus(sliceId: unknown, status: done)",
           "then": [
-            "error: SliceNotFound"
+            "error: That slice no longer exists. It may have been deleted."
           ]
         },
         {
@@ -6447,7 +6569,7 @@
           ],
           "when": "SetSliceStatus(sliceId: s-1, status: done) as a viewer",
           "then": [
-            "error: NotAllowed"
+            "error: Only editors and admins can change a slice's status."
           ]
         },
         {
@@ -6459,7 +6581,7 @@
           ],
           "when": "SetSliceStatus(sliceId: s-1, status: done)",
           "then": [
-            "error: StatusUnchanged"
+            "error: The slice already has that status."
           ]
         }
       ]
@@ -8292,6 +8414,15 @@
           "then": [
             "SignInConnected(accountId: a-1, provider: github)"
           ]
+        },
+        {
+          "kind": "error",
+          "title": "Provider isn't one of the listed ones",
+          "given": [],
+          "when": "ConnectSignIn(accountId: a-1, provider: twitter)",
+          "then": [
+            "error: Connect GitHub or Google."
+          ]
         }
       ]
     },
@@ -8359,6 +8490,15 @@
           "when": "DisconnectSignIn(accountId: a-1, provider: github)",
           "then": [
             "error: GitHub isn't connected."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Provider isn't one of the listed ones",
+          "given": [],
+          "when": "DisconnectSignIn(accountId: a-1, provider: twitter)",
+          "then": [
+            "error: Disconnect GitHub or Google."
           ]
         }
       ]
@@ -8556,7 +8696,7 @@
           "given": [],
           "when": "ChangeNotificationPreference(accountId: a-1, kind: mention, channel: slack, enabled: true)",
           "then": [
-            "error: SlackNotConnected"
+            "error: Connect Slack in Integrations first."
           ]
         },
         {
@@ -8565,7 +8705,7 @@
           "given": [],
           "when": "ChangeNotificationPreference(accountId: a-1, kind: gossip, channel: app, enabled: true)",
           "then": [
-            "error: UnknownNotificationKind"
+            "error: Pick a kind of update from the list."
           ]
         },
         {
@@ -9492,6 +9632,15 @@
           "then": [
             "MemberInvited(email: a@acme.dev, role: Editor) replaces the earlier invite and restarts the 7 days"
           ]
+        },
+        {
+          "kind": "error",
+          "title": "Role isn't one of the listed ones",
+          "given": [],
+          "when": "InviteMembers(workspaceId: w-1, emails: [nia@acme.dev], role: Superuser, invitedBy: u-1)",
+          "then": [
+            "error: Pick a role from the list."
+          ]
         }
       ]
     },
@@ -9585,6 +9734,15 @@
           "when": "ChangeMemberRole(membershipId: m-1, role: Editor, changedBy: u-1)",
           "then": [
             "no new event: role is already Editor"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Role isn't one of the listed ones",
+          "given": [],
+          "when": "ChangeMemberRole(workspaceId: w-1, membershipId: m-1, role: Superuser)",
+          "then": [
+            "error: Pick a role from the list."
           ]
         }
       ]
@@ -10388,6 +10546,15 @@
           "then": [
             "nothing new: already on the Team plan"
           ]
+        },
+        {
+          "kind": "error",
+          "title": "Plan isn't one of the listed ones",
+          "given": [],
+          "when": "ChangePlan(workspaceId: w-1, plan: platinum)",
+          "then": [
+            "error: Pick a plan from the list."
+          ]
         }
       ]
     },
@@ -11043,7 +11210,7 @@
           "given": [],
           "when": "AddScenario(sliceId: s-9, kind: success, title: Happy path)",
           "then": [
-            "error: SliceNotFound"
+            "error: That slice no longer exists. It may have been deleted."
           ]
         },
         {
@@ -11054,7 +11221,7 @@
           ],
           "when": "AddScenario(sliceId: s-1, kind: success, title:)",
           "then": [
-            "error: ScenarioTitleRequired"
+            "error: Give the scenario a title."
           ]
         },
         {
@@ -11065,7 +11232,7 @@
           ],
           "when": "AddScenario(sliceId: s-1, kind: success, title: Happy path, when:)",
           "then": [
-            "error: ScenarioWhenRequired"
+            "error: Say what happens: the When line is empty."
           ]
         },
         {
@@ -11077,7 +11244,16 @@
           ],
           "when": "AddScenario(sliceId: s-1, kind: success, title: Happy path)",
           "then": [
-            "error: DuplicateScenarioTitle"
+            "error: This slice already has a scenario with that title."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Kind isn't one of the listed ones",
+          "given": [],
+          "when": "AddScenario(sliceId: s-1, kind: maybe, title: Something)",
+          "then": [
+            "error: Pick a kind: happy path, error, empty state or edge case."
           ]
         }
       ]
@@ -11151,7 +11327,7 @@
           ],
           "when": "EditSlice(sliceId: s-1, name:, editedBy: u-1)",
           "then": [
-            "error: NameRequired"
+            "error: Give the slice a name."
           ]
         },
         {
@@ -11160,7 +11336,7 @@
           "given": [],
           "when": "EditSlice(sliceId: unknown, name: X, editedBy: u-1)",
           "then": [
-            "error: SliceNotFound"
+            "error: That slice no longer exists. It may have been deleted."
           ]
         },
         {
@@ -11171,7 +11347,7 @@
           ],
           "when": "EditSlice(sliceId: s-1, name: X, editedBy: u-1) as a viewer",
           "then": [
-            "error: NotAllowed"
+            "error: Only editors and admins can edit slices."
           ]
         },
         {
@@ -11250,7 +11426,7 @@
           ],
           "when": "MoveSlice(sliceId: s-1, direction: earlier)",
           "then": [
-            "error: AlreadyFirst"
+            "error: This slice is already first."
           ]
         },
         {
@@ -11261,7 +11437,7 @@
           ],
           "when": "MoveSlice(sliceId: s-3, direction: later)",
           "then": [
-            "error: AlreadyLast"
+            "error: This slice is already last."
           ]
         },
         {
@@ -11273,7 +11449,7 @@
           ],
           "when": "MoveSlice(sliceId: s-1, direction: later)",
           "then": [
-            "error: SliceNotFound"
+            "error: That slice no longer exists. It may have been deleted."
           ]
         }
       ]
@@ -11329,7 +11505,7 @@
           "given": [],
           "when": "DuplicateSlice(sliceId: unknown, newSliceId: s-2)",
           "then": [
-            "error: SliceNotFound"
+            "error: That slice no longer exists. It may have been deleted."
           ]
         },
         {
@@ -11340,7 +11516,7 @@
           ],
           "when": "DuplicateSlice(sliceId: s-1, newSliceId: s-151)",
           "then": [
-            "error: TooManySlices"
+            "error: This board has 150 slices, the most it can hold. Split the work into features or another project."
           ]
         },
         {
@@ -11405,7 +11581,7 @@
           "given": [],
           "when": "DeleteSlice(sliceId: unknown)",
           "then": [
-            "error: SliceNotFound"
+            "error: That slice no longer exists. It may have been deleted."
           ]
         },
         {
@@ -11416,7 +11592,7 @@
           ],
           "when": "DeleteSlice(sliceId: s-1) as a viewer",
           "then": [
-            "error: NotAllowed"
+            "error: Only editors and admins can delete slices."
           ]
         },
         {
@@ -11428,7 +11604,7 @@
           ],
           "when": "DeleteSlice(sliceId: s-1)",
           "then": [
-            "error: SliceNotFound"
+            "error: That slice no longer exists. It may have been deleted."
           ]
         }
       ]
@@ -11537,7 +11713,7 @@
           "given": [],
           "when": "query ScenarioDrawing(scenarioId: unknown)",
           "then": [
-            "error: ScenarioNotFound"
+            "error: That scenario no longer exists."
           ]
         },
         {
@@ -11625,7 +11801,7 @@
           "given": [],
           "when": "DrawScenario(scenarioId: unknown)",
           "then": [
-            "error: ScenarioNotFound"
+            "error: That scenario no longer exists."
           ]
         },
         {
@@ -11636,7 +11812,7 @@
           ],
           "when": "DrawScenario(scenarioId: sc-1, html:)",
           "then": [
-            "error: DrawingEmpty"
+            "error: Nothing was drawn. Draw the screen again."
           ]
         },
         {
@@ -11705,7 +11881,7 @@
           ],
           "when": "AssignSliceOwner(sliceId: s-1, ownerId: m-viewer)",
           "then": [
-            "error: OwnerMustNotBeViewer"
+            "error: Viewers can't own slices. Pick an editor."
           ]
         },
         {
@@ -11716,7 +11892,7 @@
           ],
           "when": "AssignSliceOwner(sliceId: s-1, ownerId: m-1) as a commenter",
           "then": [
-            "error: OnlyEditorsCanChangeOwner"
+            "error: Only editors and admins can change who owns a slice."
           ]
         },
         {
@@ -11785,7 +11961,7 @@
           ],
           "when": "UnassignSliceOwner(sliceId: s-1)",
           "then": [
-            "error: NoOwnerAssigned"
+            "error: This slice has no owner to remove."
           ]
         },
         {
@@ -11796,7 +11972,7 @@
           ],
           "when": "UnassignSliceOwner(sliceId: s-1) as a commenter",
           "then": [
-            "error: OnlyEditorsCanChangeOwner"
+            "error: Only editors and admins can change who owns a slice."
           ]
         },
         {
@@ -11808,7 +11984,7 @@
           ],
           "when": "UnassignSliceOwner(sliceId: s-1)",
           "then": [
-            "error: NoOwnerAssigned"
+            "error: This slice has no owner to remove."
           ]
         }
       ]
@@ -11867,7 +12043,7 @@
           ],
           "when": "RequestReview(sliceId: s-1, reviewerIds: [])",
           "then": [
-            "error: PickAtLeastOneReviewer"
+            "error: Pick at least one reviewer."
           ]
         },
         {
@@ -11878,7 +12054,7 @@
           ],
           "when": "RequestReview(sliceId: s-1, reviewerIds: [m-viewer])",
           "then": [
-            "error: ReviewerCannotBeViewer"
+            "error: Viewers can't review. Pick an editor or commenter."
           ]
         },
         {
@@ -11946,7 +12122,7 @@
           ],
           "when": "ApproveSpec(sliceId: s-1, reviewerId: m-2)",
           "then": [
-            "error: NoReviewRequested"
+            "error: No review has been requested for this slice."
           ]
         },
         {
@@ -11957,7 +12133,7 @@
           ],
           "when": "ApproveSpec(sliceId: s-1, reviewerId: m-9)",
           "then": [
-            "error: NotAReviewer"
+            "error: Only the reviewers asked can approve or ask for changes."
           ]
         },
         {
@@ -12026,7 +12202,7 @@
           ],
           "when": "RequestChanges(sliceId: s-1, reviewerId: m-2)",
           "then": [
-            "error: NoReviewRequested"
+            "error: No review has been requested for this slice."
           ]
         },
         {
@@ -12037,7 +12213,7 @@
           ],
           "when": "RequestChanges(sliceId: s-1, reviewerId: m-9)",
           "then": [
-            "error: NotAReviewer"
+            "error: Only the reviewers asked can approve or ask for changes."
           ]
         },
         {
@@ -12106,7 +12282,7 @@
           ],
           "when": "CancelReview(sliceId: s-1)",
           "then": [
-            "error: NoReviewRequested"
+            "error: No review has been requested for this slice."
           ]
         },
         {
@@ -12117,7 +12293,7 @@
           ],
           "when": "CancelReview(sliceId: s-1) as a commenter",
           "then": [
-            "error: NotAllowed"
+            "error: Only editors and admins can cancel a review."
           ]
         },
         {
@@ -12187,7 +12363,7 @@
           ],
           "when": "ResetReview(sliceId: s-1)",
           "then": [
-            "error: NoReviewRequested"
+            "error: No review has been requested for this slice."
           ]
         },
         {
@@ -12199,7 +12375,7 @@
           ],
           "when": "ResetReview(sliceId: s-1)",
           "then": [
-            "error: NoReviewRequested"
+            "error: No review has been requested for this slice."
           ]
         },
         {
@@ -13161,6 +13337,15 @@
           "then": [
             "error: this scenario was already added"
           ]
+        },
+        {
+          "kind": "error",
+          "title": "Kind isn't one of the listed ones",
+          "given": [],
+          "when": "AddSuggestedScenario(threadId: t-1, commentId: c-1, sliceId: s-1, addedBy: editor-1, kind: maybe)",
+          "then": [
+            "error: Pick a kind: happy path, error, empty state or edge case."
+          ]
         }
       ]
     },
@@ -13492,6 +13677,15 @@
           "when": "GrantProjectAccess(projectId: p-1, email: nia@acme.dev, role: edit)",
           "then": [
             "ProjectAccessGranted(projectId: p-1, memberId: m-nia, role: edit)"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Role isn't one of the listed ones",
+          "given": [],
+          "when": "GrantProjectAccess(projectId: p-1, email: nia@acme.dev, role: own)",
+          "then": [
+            "error: Pick edit, comment or view."
           ]
         }
       ]
@@ -14850,10 +15044,13 @@
         "fields": [
           "prototypeId: uuid",
           "projectId: uuid",
-          "screenNames: list",
+          "screenNames: array(string)",
           "fileCount: integer",
           "isSplit: boolean",
-          "pageCount: integer"
+          "pageCount: integer",
+          "skippedCount: integer",
+          "ignoredFileNames: array(string)",
+          "interactive: boolean"
         ],
         "column": 20,
         "step": 21,
@@ -14867,7 +15064,7 @@
         "name": "PrototypeScreensProjection",
         "label": "Prototype screens projection",
         "fields": [
-          "on PrototypeLoaded: set the file names as the screen tabs, record file count and clear any split state",
+          "on PrototypeLoaded: replace the entry: screenNames = fileNames, fileCount, skippedCount (for \"Loaded the first 80 of 95 files.\"), ignoredFileNames (for the ignored-files note), interactive; isSplit = false",
           "on PrototypeSplitIntoPages: replace the tabs with one tab per page, mark the prototype as split and store the page count",
           "on SplitUndone: restore the original file tabs and clear the split flag"
         ],
@@ -14879,7 +15076,7 @@
         "handles": [
           {
             "event": "PrototypeLoaded",
-            "does": "set the file names as the screen tabs, record file count and clear any split state"
+            "does": "replace the entry: screenNames = fileNames, fileCount, skippedCount (for \"Loaded the first 80 of 95 files.\"), ignoredFileNames (for the ignored-files note), interactive; isSplit = false"
           },
           {
             "event": "PrototypeSplitIntoPages",
@@ -14900,8 +15097,13 @@
         "fields": [
           "prototypeId: uuid",
           "projectId: uuid",
-          "fileNames: list",
+          "source: enum(files|paste)",
+          "fileNames: array(string)",
           "fileCount: integer",
+          "skippedCount: integer",
+          "ignoredFileNames: array(string)",
+          "interactive: boolean",
+          "loadedBy: uuid",
           "loadedAt: utc_datetime"
         ],
         "column": 21,
@@ -14930,10 +15132,16 @@
         "name": "LoadPrototype",
         "label": "Load prototype",
         "fields": [
+          "prototypeId: uuid",
           "projectId: uuid",
-          "fileNames: list",
-          "fileCount: integer",
-          "source: enum(files|paste)"
+          "source: enum(files|paste)",
+          "fileNames: array(string)",
+          "unreadableFileNames: array(string)",
+          "ignoredFileNames: array(string)",
+          "interactive: boolean",
+          "largestFileBytes: integer",
+          "totalBytes: integer",
+          "loadedBy: uuid"
         ],
         "column": 21,
         "step": 22,

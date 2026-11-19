@@ -5,7 +5,10 @@ defmodule EmberLine.Modeling.Project do
   the command.
   """
 
+  alias EmberLine.Accounts.Workspace
   alias EmberLine.Modeling.Project.{CreateProject, DeleteProject, ProjectCreated, ProjectDeleted}
+
+  @source_types [:new, :local, :github]
 
   defstruct [:project_id, :name, deleted?: false]
 
@@ -23,10 +26,24 @@ defmodule EmberLine.Modeling.Project do
   def execute(%__MODULE__{}, %CreateProject{} = command) do
     cond do
       # Until Member roles exist, "allowed" means signed in.
-      is_nil(command.created_by) -> {:error, :not_allowed}
-      blank?(command.name) -> {:error, :project_name_required}
-      command.source_type == :github and blank?(command.repo_url) -> {:error, :repo_url_required}
-      true -> project_created(command)
+      is_nil(command.created_by) ->
+        {:error, :not_allowed}
+
+      blank?(command.name) ->
+        {:error, :project_name_required}
+
+      command.source_type not in @source_types ->
+        {:error, :source_type_not_listed}
+
+      command.source_type == :github and blank?(command.repo_url) ->
+        {:error, :repo_url_required}
+
+      # Optional ("GitHub project with branch" has none), but one of the listed stacks if given.
+      not (is_nil(command.stack) or command.stack in Workspace.stacks()) ->
+        {:error, :stack_not_listed}
+
+      true ->
+        project_created(command)
     end
   end
 
@@ -36,7 +53,7 @@ defmodule EmberLine.Modeling.Project do
     cond do
       is_nil(project.project_id) or project.deleted? -> {:error, :project_not_found}
       # Until Member roles exist, "allowed" means signed in.
-      is_nil(command.deleted_by) -> {:error, :not_allowed}
+      is_nil(command.deleted_by) -> {:error, :delete_not_allowed}
       command.confirmed != true -> {:error, {:confirm_delete, project.name}}
       true -> project_deleted(command)
     end
