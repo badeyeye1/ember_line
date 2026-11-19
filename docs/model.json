@@ -2,7 +2,7 @@
   "format": "event-model",
   "version": 1,
   "generator": "Event-Model Builder (prototype)",
-  "exportedAt": "2026-11-19T07:24:39.454Z",
+  "exportedAt": "2026-11-19T09:35:56.071Z",
   "project": {
     "id": "pmwldlygxbto7",
     "name": "EmberLine",
@@ -2242,15 +2242,14 @@
       "feature": "f-accounts",
       "screen": "welcome",
       "actor": "Owner",
-      "story": "The new owner names their workspace and says what they do, so the team has a home and teammates know their role.",
+      "story": "The new owner names their workspace and says what they do. The name gives the workspace its web address (with -2, -3 if it's taken); what they do goes on their profile so teammates know their role.",
       "uiElement": "Welcome form",
       "command": {
         "name": "SetUpWorkspace",
         "fields": [
           "workspaceId: uuid",
           "name: string",
-          "slug: string",
-          "accountId: uuid",
+          "savedBy: uuid",
           "title: enum(Product|Engineering|Design|Something else)"
         ]
       },
@@ -2261,9 +2260,19 @@
             "workspaceId: uuid",
             "name: string",
             "slug: string",
+            "defaultStack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)",
+            "savedBy: uuid",
+            "savedAt: utc_datetime"
+          ]
+        },
+        {
+          "name": "ProfileSaved",
+          "fields": [
             "accountId: uuid",
+            "fullName: string",
             "title: string",
-            "defaultStack: string"
+            "timeZone: string",
+            "avatarColor: string"
           ]
         }
       ],
@@ -2277,9 +2286,10 @@
           "given": [
             "WorkspaceCreated(workspaceId: w-1)"
           ],
-          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme Studio, accountId: u-1, title: Product)",
+          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme Studio, savedBy: u-1, title: Product)",
           "then": [
-            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Studio, slug: acme-studio, accountId: u-1, title: Product)"
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Studio, slug: acme-studio, savedBy: u-1)",
+            "ProfileSaved(accountId: u-1, title: Product)"
           ]
         },
         {
@@ -2288,7 +2298,7 @@
           "given": [
             "WorkspaceCreated(workspaceId: w-1)"
           ],
-          "when": "SetUpWorkspace(workspaceId: w-1, name: '   ', accountId: u-1, title: Product)",
+          "when": "SetUpWorkspace(workspaceId: w-1, name: '   ', savedBy: u-1, title: Product)",
           "then": [
             "error: Give your workspace a name."
           ]
@@ -2299,9 +2309,10 @@
           "given": [
             "WorkspaceCreated(workspaceId: w-1)"
           ],
-          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme & Co!, accountId: u-1, title: Design)",
+          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme & Co!, savedBy: u-1, title: Design)",
           "then": [
-            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme & Co!, slug: acme-co, accountId: u-1, title: Design)"
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme & Co!, slug: acme-co, savedBy: u-1)",
+            "ProfileSaved(accountId: u-1, title: Design)"
           ]
         },
         {
@@ -2310,20 +2321,35 @@
           "given": [
             "WorkspaceCreated(workspaceId: w-1)"
           ],
-          "when": "SetUpWorkspace(workspaceId: w-1, name: '!!!', accountId: u-1, title: Something else)",
+          "when": "SetUpWorkspace(workspaceId: w-1, name: '!!!', savedBy: u-1, title: Something else)",
           "then": [
-            "WorkspaceDetailsSaved(workspaceId: w-1, name: !!!, slug: workspace, accountId: u-1, title: Something else)"
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: !!!, slug: workspace, savedBy: u-1)",
+            "ProfileSaved(accountId: u-1, title: Something else)"
           ]
         },
         {
           "kind": "edge",
           "title": "Saving again overwrites the earlier details",
           "given": [
-            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Studio, slug: acme-studio, accountId: u-1, title: Product)"
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Studio, slug: acme-studio, savedBy: u-1)"
           ],
-          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme Labs, accountId: u-1, title: Engineering)",
+          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme Labs, savedBy: u-1, title: Engineering)",
           "then": [
-            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Labs, slug: acme-labs, accountId: u-1, title: Engineering)"
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Labs, slug: acme-labs, savedBy: u-1)",
+            "ProfileSaved(accountId: u-1, title: Engineering)"
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "Name's web address already taken",
+          "given": [
+            "WorkspaceCreated(workspaceId: w-9, name: Acme Studio, slug: acme-studio)",
+            "WorkspaceCreated(workspaceId: w-1)"
+          ],
+          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme Studio, savedBy: u-1, title: Product)",
+          "then": [
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Studio, slug: acme-studio-2, savedBy: u-1)",
+            "ProfileSaved(accountId: u-1, title: Product)"
           ]
         }
       ]
@@ -8414,9 +8440,9 @@
             "workspaceId: uuid",
             "name: string",
             "slug: string",
-            "accountId: uuid",
-            "title: string",
-            "defaultStack: string"
+            "defaultStack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)",
+            "savedBy: uuid",
+            "savedAt: utc_datetime"
           ]
         },
         {
@@ -8466,7 +8492,7 @@
           "workspaceId: uuid",
           "name: string",
           "slug: string",
-          "defaultStack: string",
+          "defaultStack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)",
           "createdAt: utc_datetime",
           "domains: array(string)",
           "domainJoin: boolean",
@@ -8479,7 +8505,7 @@
           "title": "Settings after creation and edits",
           "given": [
             "WorkspaceCreated(workspaceId: w-1, name: Acme, slug: acme, ownerAccountId: a-1)",
-            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Labs, slug: acme-labs, defaultStack: Other)"
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Labs, slug: acme-labs, defaultStack: Other, savedBy: a-1)"
           ],
           "when": "query WorkspaceSettings(workspaceId: w-1)",
           "then": [
@@ -8532,7 +8558,7 @@
       "feature": "f-workspace",
       "screen": "workspace-general",
       "actor": "Admin",
-      "story": "An owner or admin renames the workspace, changes its web address or picks a different default stack for new projects.",
+      "story": "The workspace owner, or an admin once member roles exist, changes the workspace's name, web address and default stack.",
       "uiElement": "Save button",
       "command": {
         "name": "SaveWorkspaceDetails",
@@ -8540,8 +8566,8 @@
           "workspaceId: uuid",
           "name: string",
           "slug: string",
-          "defaultStack: string",
-          "actorAccountId: uuid"
+          "defaultStack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)",
+          "savedBy: uuid"
         ]
       },
       "produces": [
@@ -8551,9 +8577,9 @@
             "workspaceId: uuid",
             "name: string",
             "slug: string",
-            "accountId: uuid",
-            "title: string",
-            "defaultStack: string"
+            "defaultStack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)",
+            "savedBy: uuid",
+            "savedAt: utc_datetime"
           ]
         }
       ],
@@ -8563,13 +8589,13 @@
       "specs": [
         {
           "kind": "success",
-          "title": "Rename workspace",
+          "title": "Owner renames the workspace",
           "given": [
             "WorkspaceCreated(workspaceId: w-1, name: Acme, slug: acme)"
           ],
-          "when": "SaveWorkspaceDetails(workspaceId: w-1, name: Acme Labs, slug: acme-labs, defaultStack: Other, actorAccountId: admin)",
+          "when": "SaveWorkspaceDetails(workspaceId: w-1, name: Acme Labs, slug: acme-labs, defaultStack: Other, savedBy: owner-1)",
           "then": [
-            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Labs, slug: acme-labs, defaultStack: Other)"
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Labs, slug: acme-labs, defaultStack: Other, savedBy: owner-1)"
           ]
         },
         {
@@ -8578,7 +8604,7 @@
           "given": [
             "WorkspaceCreated(workspaceId: w-1, name: Acme, slug: acme)"
           ],
-          "when": "SaveWorkspaceDetails(workspaceId: w-1, name: '', slug: acme, defaultStack: Other)",
+          "when": "SaveWorkspaceDetails(workspaceId: w-1, name: '', slug: acme, defaultStack: Other, savedBy: owner-1)",
           "then": [
             "error: The workspace needs a name."
           ]
@@ -8589,20 +8615,20 @@
           "given": [
             "WorkspaceCreated(workspaceId: w-1, name: Acme, slug: acme)"
           ],
-          "when": "SaveWorkspaceDetails(workspaceId: w-1, name: Acme, slug: Bad_URL!, defaultStack: Other)",
+          "when": "SaveWorkspaceDetails(workspaceId: w-1, name: Acme, slug: Bad_URL!, defaultStack: Other, savedBy: owner-1)",
           "then": [
             "error: Use 2 to 39 lowercase letters, numbers or hyphens for the URL."
           ]
         },
         {
           "kind": "error",
-          "title": "Actor is not an admin",
+          "title": "Not the owner or an admin",
           "given": [
             "WorkspaceCreated(workspaceId: w-1, name: Acme, slug: acme)"
           ],
-          "when": "SaveWorkspaceDetails(workspaceId: w-1, name: Acme 2, slug: acme, defaultStack: Other, actorAccountId: editor)",
+          "when": "SaveWorkspaceDetails(workspaceId: w-1, name: Acme 2, slug: acme, defaultStack: Other, savedBy: editor-1)",
           "then": [
-            "error: only owners and admins can change workspace settings"
+            "error: Only owners and admins can change workspace settings."
           ]
         },
         {
@@ -8611,9 +8637,55 @@
           "given": [
             "WorkspaceCreated(workspaceId: w-1, name: Acme, slug: acme)"
           ],
-          "when": "SaveWorkspaceDetails(workspaceId: w-1, name: Acme, slug: ab, defaultStack: Other, actorAccountId: admin)",
+          "when": "SaveWorkspaceDetails(workspaceId: w-1, name: Acme, slug: ab, defaultStack: Other, savedBy: owner-1)",
           "then": [
-            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme, slug: ab, defaultStack: Other)"
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme, slug: ab, defaultStack: Other, savedBy: owner-1)"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "URL already taken",
+          "given": [
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, slug: acme)",
+            "WorkspaceCreated(workspaceId: w-2, name: Acme Labs, slug: acme-labs)"
+          ],
+          "when": "SaveWorkspaceDetails(workspaceId: w-1, name: Acme, slug: acme-labs, defaultStack: Other, savedBy: owner-1)",
+          "then": [
+            "error: That URL is taken. Try another."
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "Keeping its own URL",
+          "given": [
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, slug: acme)"
+          ],
+          "when": "SaveWorkspaceDetails(workspaceId: w-1, name: Acme Inc, slug: acme, defaultStack: Other, savedBy: owner-1)",
+          "then": [
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Inc, slug: acme, defaultStack: Other, savedBy: owner-1)"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Stack isn't one of the listed ones",
+          "given": [
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, slug: acme)"
+          ],
+          "when": "SaveWorkspaceDetails(workspaceId: w-1, name: Acme, slug: acme, defaultStack: Rails, savedBy: owner-1)",
+          "then": [
+            "error: Pick a stack from the list."
+          ]
+        },
+        {
+          "kind": "success",
+          "title": "Admin saves once roles exist",
+          "given": [
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, slug: acme)",
+            "MemberRoleChanged(workspaceId: w-1, accountId: u-7, role: Admin)"
+          ],
+          "when": "SaveWorkspaceDetails(workspaceId: w-1, name: Acme 2, slug: acme, defaultStack: Other, savedBy: u-7)",
+          "then": [
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme 2, slug: acme, defaultStack: Other, savedBy: u-7)"
           ]
         }
       ]
@@ -8677,7 +8749,7 @@
         },
         {
           "kind": "error",
-          "title": "Actor is not an admin",
+          "title": "Not the owner or an admin",
           "given": [
             "WorkspaceCreated(workspaceId: w-1)"
           ],
@@ -14186,9 +14258,9 @@
           "workspaceId: uuid",
           "name: string",
           "slug: string",
-          "accountId: uuid",
-          "title: string",
-          "defaultStack: string"
+          "defaultStack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)",
+          "savedBy: uuid",
+          "savedAt: utc_datetime"
         ],
         "column": 14,
         "step": 15,
@@ -14196,6 +14268,25 @@
         "lane": "Events",
         "color": "#f59e0b",
         "stream": "Workspace"
+      },
+      {
+        "id": "n-14-ev-ProfileSaved",
+        "type": "event",
+        "name": "ProfileSaved",
+        "label": "Profile saved",
+        "fields": [
+          "accountId: uuid",
+          "fullName: string",
+          "title: string",
+          "timeZone: string",
+          "avatarColor: string"
+        ],
+        "column": 14,
+        "step": 15,
+        "slice": "Name workspace and role",
+        "lane": "Events",
+        "color": "#f59e0b",
+        "stream": "Account"
       },
       {
         "id": "n-14-ui",
@@ -14218,8 +14309,7 @@
         "fields": [
           "workspaceId: uuid",
           "name: string",
-          "slug: string",
-          "accountId: uuid",
+          "savedBy: uuid",
           "title: enum(Product|Engineering|Design|Something else)"
         ],
         "column": 14,
@@ -17441,7 +17531,7 @@
           "workspaceId: uuid",
           "name: string",
           "slug: string",
-          "defaultStack: string",
+          "defaultStack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)",
           "createdAt: utc_datetime",
           "domains: array(string)",
           "domainJoin: boolean",
@@ -17498,9 +17588,9 @@
           "workspaceId: uuid",
           "name: string",
           "slug: string",
-          "accountId: uuid",
-          "title: string",
-          "defaultStack: string"
+          "defaultStack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)",
+          "savedBy: uuid",
+          "savedAt: utc_datetime"
         ],
         "column": 68,
         "step": 69,
@@ -17531,8 +17621,8 @@
           "workspaceId: uuid",
           "name: string",
           "slug: string",
-          "defaultStack: string",
-          "actorAccountId: uuid"
+          "defaultStack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)",
+          "savedBy: uuid"
         ],
         "column": 68,
         "step": 69,
@@ -20338,6 +20428,11 @@
         "step": 15
       },
       {
+        "from": "n-14-cmd",
+        "to": "n-14-ev-ProfileSaved",
+        "step": 15
+      },
+      {
         "from": "n-15-ui",
         "to": "n-15-cmd",
         "step": 16
@@ -21158,7 +21253,7 @@
         "step": 56
       },
       {
-        "from": "n-56-ev-ProfileSaved",
+        "from": "n-14-ev-ProfileSaved",
         "to": "n-55-proj",
         "step": 56
       },

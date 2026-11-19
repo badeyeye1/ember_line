@@ -42,6 +42,7 @@ defmodule EmberLine.Accounts.Workspace do
       validate Validations.CanChangeWorkspaceSettings
       validate Validations.WorkspaceNameGiven
       validate Validations.WorkspaceSlugValid
+      validate Validations.WorkspaceStackListed
 
       change Changes.RecordWorkspaceDetailsSaved
 
@@ -81,4 +82,17 @@ defmodule EmberLine.Accounts.Workspace do
     # One web address per workspace; a taken slug gets -2, -3, ...
     identity :unique_slug, [:slug]
   end
+
+  @stacks [
+    "Elixir: Phoenix LiveView + Ash + AshCommanded",
+    "Elixir: Phoenix LiveView + Ash",
+    "Elixir: Phoenix LiveView + Ash + Commanded",
+    "Elixir: Phoenix LiveView + Ash + Commanded + Hologram",
+    "Elixir: Phoenix LiveView + Ash + Commanded + Elm",
+    "Elixir: Phoenix LiveView + Commanded",
+    "Other"
+  ]
+
+  @doc "WorkspaceDetailsSaved.defaultStack: the stacks the model lists."
+  def stacks, do: @stacks
 end
