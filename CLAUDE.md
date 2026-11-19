@@ -44,7 +44,7 @@ This repo is Emberline built with itself: `docs/model.json` is its event model, 
 
 - Events are named in the past tense and are permanent. Never change or delete a shipped event; follow `change-event-safely-skill.md` and use an upcaster or a new version.
 - Events carry ids, not personal data. Refer to `account_id`; never put emails or names in events.
-- One aggregate per stream: `EmberLine.Modeling.Project` and `EmberLine.Modeling.Slice`.
+- One aggregate per stream: `EmberLine.Modeling.Project`, `EmberLine.Modeling.Slice` and `EmberLine.Modeling.Feature`.
 - Aggregates decide (`execute/2`) and record (`apply/2`). They don't query the database, call other services or read the clock. Time and ids arrive in the command.
 
 ## Folder layout
