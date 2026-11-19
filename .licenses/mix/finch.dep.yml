@@ -1,6 +1,6 @@
 ---
 name: finch
-version: 0.24.0
+version: 0.25.0
 scm: hex
 repo: hexpm
 type: mix
