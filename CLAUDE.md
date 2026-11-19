@@ -77,11 +77,12 @@ test/ember_line/modeling/ # one test file per slice, written from its scenarios
 
 1. Read the slice in `docs/model.json`: its command, events, read model, screen and scenarios.
    Each slice belongs to the feature named in `model.json`. A pull request only touches one feature's slices.
-2. Turn each Given/When/Then scenario into a test before writing any code: Given = earlier events, When = the command, Then = the new events or the error.
-3. Build only that slice: command, aggregate handling, event, projection or read model, screen, and its router entry.
+2. Check the spec before writing tests: run `docs/skills/review-spec-skill.md` "What to look for" (5) on the slice. Every event field needs a source, one value one name, "taken" cases for unique values, wrong/expired/too-many-tries for codes and passwords, closed lists for fixed sets, a slice for everything on the screen's reference, and a scenario for anything that waits on a later slice. If anything is missing, post numbered spec questions with suggested answers and stop. Answers arrive as a change to `docs/model.json`; pull it and re-read the slice.
+3. Turn each Given/When/Then scenario into a test before writing any code: Given = earlier events, When = the command, Then = the new events or the error.
+4. Build only that slice: command, aggregate handling, event, projection or read model, screen, and its router entry.
    Build the screen from `docs/design/screens/<screen>.*` using the shared UI components.
-4. Run `mix format`, `mix compile --warnings-as-errors`, `mix credo --strict` and `mix test`. All must pass.
-5. Check the work against `check-pr-skill.md`, then open a pull request that names the slice and lists its scenarios.
+5. Run `mix format`, `mix compile --warnings-as-errors`, `mix credo --strict` and `mix test`. All must pass.
+6. Check the work against `check-pr-skill.md`, then open a pull request that names the slice, lists its scenarios, and lists any spec questions with the model change that answered each.
 
 One slice per pull request. Don't refactor other slices in the same pull request.
 
@@ -97,6 +98,7 @@ mix phx.server
 
 ## Don'ts
 
+- Don't write a rule, validation or error message that no scenario describes, not even provisionally. Ask a spec question instead.
 - Don't edit `docs/model.json` by hand. Change it in the builder and re-export it.
 - Don't put Phoenix or Ash code inside aggregates.
 - Don't read the EventStore directly from LiveViews. Use read models.

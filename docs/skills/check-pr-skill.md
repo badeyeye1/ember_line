@@ -94,6 +94,8 @@ Work through these in order. Each finding gets a severity:
 - `outside_scope` files are explained by the slice: the router, a shared component the screen needs, test support. Anything else is a `should`, or a blocker if it changes behaviour other slices rely on.
 - No `generated_edits`. Hand edits to generated code are a blocker, because they disappear on the next generate.
 - No new events or commands the spec doesn't have. If the code needed one, the model is missing it: say so (see "When the spec is wrong").
+- No rule without a scenario. A validation, error message or permission check with no matching scenario is a blocker: it was guessed, and it has no test. The fix is a spec question and a scenario, not a test written after the fact.
+- The pull request lists the spec questions the agent raised and the model change that answered each one.
 
 **6. The read side (state views and automations)**
 - Every event in the spec's `projection.handles` has a projection, and each one does what its `does` text says.
