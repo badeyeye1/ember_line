@@ -55,6 +55,21 @@ defmodule EmberLineWeb.WelcomeLiveTest do
     assert Ash.get!(User, owner.id, authorize?: false).title == "Engineering"
   end
 
+  test "the browser's time zone goes on the profile", %{
+    conn: conn,
+    owner: owner,
+    workspace: workspace
+  } do
+    conn = put_connect_params(conn, %{"time_zone" => "Europe/London"})
+    {:ok, view, _html} = live(conn, path(workspace))
+
+    view
+    |> form("#welcome-form", welcome: %{name: "Acme Studio", title: "Product"})
+    |> render_submit()
+
+    assert Ash.get!(User, owner.id, authorize?: false).time_zone == "Europe/London"
+  end
+
   test "Blank name is rejected", %{conn: conn, workspace: workspace} do
     {:ok, view, _html} = live(conn, path(workspace))
 

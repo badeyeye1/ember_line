@@ -47,7 +47,7 @@ defmodule EmberLineWeb.AuthScreensTest do
       |> form("#sign-in-form", user: %{email: "ada@company.com", password: "nope12345"})
       |> render_submit()
 
-    assert html =~ "That password doesn&#39;t match. Try again or reset it."
+    assert html =~ "That email and password don&#39;t match. Try again or reset your password."
     refute has_element?(view, "#sign-in-session-form")
   end
 

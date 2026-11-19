@@ -256,9 +256,10 @@ defmodule EmberLine.Accounts.User do
       prepare build(load: [:code_sent_at, :resend_available_at])
     end
 
-    # The person's title, set by setup-workspace's welcome form. Internal only.
-    update :set_title do
-      accept [:title]
+    # The person's title and time zone, set by setup-workspace's welcome
+    # form. Internal only.
+    update :save_welcome_profile do
+      accept [:title, :time_zone]
     end
 
     # The code's state, set when a code is issued or tried. Internal only.
@@ -399,8 +400,10 @@ defmodule EmberLine.Accounts.User do
     attribute :verification_code_sent_at, :utc_datetime_usec
     attribute :verification_attempts, :integer, allow_nil?: false, default: 0
 
-    # Added by slice setup-workspace: what the person does (ProfileSaved.title).
+    # Added by slice setup-workspace: what the person does and their time
+    # zone (ProfileSaved.title, .timeZone).
     attribute :title, :string, public?: true
+    attribute :time_zone, :string, public?: true
   end
 
   calculations do

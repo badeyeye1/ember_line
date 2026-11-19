@@ -2,10 +2,11 @@ defmodule EmberLine.Accounts.Actions.SignIn do
   @moduledoc """
   Command SignIn (slice signin).
 
-  Checks, in order: a valid email; a password; the account and its password
-  (an unknown email gets the same answer as a wrong password, after the same
-  bcrypt work, so sign-in doesn't reveal which emails have accounts); then a
-  verified email (only after the password matched).
+  Checks, in order: a valid email; a password; the lock (SignInLock: 5
+  failures in 15 minutes); the account and its password (an unknown email
+  gets the same answer as a wrong password, after the same bcrypt work, and
+  counts toward the lock the same way); then a verified email (only after
+  the password matched). A successful sign-in clears the count.
 
   On success: a session token, a remember-me token when keepSignedIn, and
   SignedIn in the outbox, in one transaction.
@@ -15,11 +16,12 @@ defmodule EmberLine.Accounts.Actions.SignIn do
   require Ash.Query
 
   alias Ash.Error.Changes.InvalidArgument
-  alias EmberLine.Accounts.{Device, User}
+  alias EmberLine.Accounts.{Device, SignInLock, User}
   alias EmberLine.Events
   alias EmberLine.Repo
 
-  @wrong "That password doesn't match. Try again or reset it."
+  @wrong "That email and password don't match. Try again or reset your password."
+  @locked "Too many attempts. Try again in 15 minutes, or reset your password."
   @email_format ~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
   @impl true
@@ -34,6 +36,9 @@ defmodule EmberLine.Accounts.Actions.SignIn do
       password == "" ->
         reject(:password, "Enter your password.")
 
+      SignInLock.locked?(email, DateTime.utc_now()) ->
+        reject(:email, @locked)
+
       true ->
         check(email, password, input.arguments)
     end
@@ -44,6 +49,7 @@ defmodule EmberLine.Accounts.Actions.SignIn do
 
     cond do
       not password_matches?(account, password) ->
+        :ok = SignInLock.record_failure!(email, DateTime.utc_now())
         reject(:password, @wrong)
 
       is_nil(account.confirmed_at) ->
@@ -55,6 +61,7 @@ defmodule EmberLine.Accounts.Actions.SignIn do
          )}
 
       true ->
+        :ok = SignInLock.clear!(email)
         signed_in(account, args[:keep_signed_in] == true, Device.describe(args[:device]))
     end
   end

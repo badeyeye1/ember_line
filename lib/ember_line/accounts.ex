@@ -5,6 +5,7 @@ defmodule EmberLine.Accounts do
 
   resources do
     resource EmberLine.Accounts.NotificationPreference
+    resource EmberLine.Accounts.SignInFailureCount
     resource EmberLine.Accounts.Token
     resource EmberLine.Accounts.User
     resource EmberLine.Accounts.Workspace
