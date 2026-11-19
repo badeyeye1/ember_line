@@ -45,6 +45,11 @@ defmodule EmberLine.Accounts.User do
         # off and the signup screen calls :register_account itself.
         registration_enabled? false
         confirmation_required? false
+        # Command SignIn (slice signin) runs :sign_in directly, with the model's
+        # rules and a SignedIn event, so the strategy's own sign-in endpoint
+        # is off.
+        sign_in_enabled? false
+        sign_in_tokens_enabled? false
 
         resettable do
           sender EmberLine.Accounts.User.Senders.SendPasswordResetEmail
@@ -75,6 +80,7 @@ defmodule EmberLine.Accounts.User do
     define :verify_email, args: [:account_id, :code, :device]
     define :pending_verification, args: [:account_id], not_found_error?: false
     define :resend_verification_code, args: [:account_id]
+    define :sign_in, args: [:email, :password, :keep_signed_in, :device]
   end
 
   actions do
@@ -222,6 +228,16 @@ defmodule EmberLine.Accounts.User do
       run EmberLine.Accounts.Actions.VerifyEmail
     end
 
+    # Command SignIn → SignedIn (slice signin). See
+    # EmberLine.Accounts.Actions.SignIn.
+    action :sign_in, :map do
+      argument :email, :string, allow_nil?: true
+      argument :password, :string, allow_nil?: true, sensitive?: true
+      argument :keep_signed_in, :boolean, default: false
+      argument :device, :string, allow_nil?: true, description: "The browser's user agent"
+      run EmberLine.Accounts.Actions.SignIn
+    end
+
     # Command ResendVerificationCode → VerificationCodeResent (slice
     # resend-code). See EmberLine.Accounts.Actions.ResendVerificationCode.
     action :resend_verification_code, :map do
@@ -340,6 +356,11 @@ defmodule EmberLine.Accounts.User do
     # Anyone may try a code: the code is the proof. Tries are counted and
     # limited in the action.
     policy action(:verify_email) do
+      authorize_if always()
+    end
+
+    # Anyone may try to sign in: the password is the proof.
+    policy action(:sign_in) do
       authorize_if always()
     end
 

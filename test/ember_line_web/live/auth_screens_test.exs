@@ -6,6 +6,7 @@ defmodule EmberLineWeb.AuthScreensTest do
   import Swoosh.TestAssertions
 
   alias EmberLine.Accounts.User
+  alias EmberLine.Given
 
   @password "secret123"
 
@@ -19,31 +20,67 @@ defmodule EmberLineWeb.AuthScreensTest do
     })
   end
 
-  test "sign in posts to the password strategy and signs the member in", %{conn: conn} do
+  test "Correct email and password: signs in and keeps the member signed in", %{conn: conn} do
     account!()
     {:ok, view, html} = live(conn, ~p"/sign-in")
     assert html =~ "Welcome back. Sign in to your workspace."
 
-    form =
-      form(view, "#sign-in-form", user: %{email: "ada@company.com", password: @password})
+    view
+    |> form("#sign-in-form",
+      user: %{email: "ada@company.com", password: @password, keep_signed_in: "true"}
+    )
+    |> render_submit()
 
-    render_submit(form)
-    conn = follow_trigger_action(form, conn)
+    conn = follow_trigger_action(form(view, "#sign-in-session-form"), conn)
 
     assert redirected_to(conn) == ~p"/"
     assert get_session(conn, "user_token")
+    assert Enum.any?(Map.keys(conn.resp_cookies), &String.contains?(&1, "remember_me"))
   end
 
-  test "a wrong password comes back to sign in with the error", %{conn: conn} do
+  test "Wrong password", %{conn: conn} do
+    account!()
+    {:ok, view, _html} = live(conn, ~p"/sign-in")
+
+    html =
+      view
+      |> form("#sign-in-form", user: %{email: "ada@company.com", password: "nope12345"})
+      |> render_submit()
+
+    assert html =~ "That password doesn&#39;t match. Try again or reset it."
+    refute has_element?(view, "#sign-in-session-form")
+  end
+
+  test "Account not yet verified is sent to verification instead of signed in", %{conn: conn} do
+    {_account, _code} =
+      Given.Account.account_registered(
+        email: "grace@company.com",
+        password: "secret123"
+      )
+
+    {:ok, view, _html} = live(conn, ~p"/sign-in")
+
+    result =
+      view
+      |> form("#sign-in-form", user: %{email: "grace@company.com", password: "secret123"})
+      |> render_submit()
+
+    assert {:error, {:live_redirect, %{to: "/verify/" <> _token}}} = result
+    {:ok, _verify, html} = follow_redirect(result, conn)
+    assert html =~ "Email not verified. Enter the 6-digit code to continue."
+    assert html =~ "Check your email"
+  end
+
+  test "AshAuthentication's own password sign-in endpoint is off", %{conn: conn} do
     account!()
 
     conn =
-      post(conn, ~p"/auth/user/password/sign_in",
-        user: %{email: "ada@company.com", password: "nope1234"}
+      post(conn, "/auth/user/password/sign_in",
+        user: %{email: "ada@company.com", password: @password}
       )
 
-    assert redirected_to(conn) == ~p"/sign-in"
-    assert Phoenix.Flash.get(conn.assigns.flash, :error) == "Incorrect email or password"
+    assert conn.status == 404
+    refute get_session(conn, "user_token")
   end
 
   test "forgot sends a reset link and shows the sent screen", %{conn: conn} do
