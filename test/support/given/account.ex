@@ -3,7 +3,15 @@ defmodule EmberLine.Given.Account do
 
   import ExUnit.Assertions
 
-  alias EmberLine.Accounts.{NotificationPreference, User, VerificationCode, Workspace}
+  alias EmberLine.Accounts.{
+    NotificationPreference,
+    SignInFailureCount,
+    User,
+    VerificationCode,
+    Workspace
+  }
+
+  require Ash.Query
 
   @doc """
   An account to act as, with a sign-in token. Seeded directly, not
@@ -86,5 +94,26 @@ defmodule EmberLine.Given.Account do
     assert_received {:email, %{to: [{_, ^to}], text_body: body}}
     [code] = Regex.run(~r/\b(\d{6})\b/, body, capture: :all_but_first)
     code
+  end
+
+  @doc "Given \"N failed sign-ins for <email>\": real failed attempts through SignIn."
+  def sign_in_failed(email, times) do
+    for _ <- 1..times, do: User.sign_in(email, "not-the-password-1", false, nil)
+    :ok
+  end
+
+  @doc "Given \"... the last one N minutes ago\": moves <email>'s failure times (and lock) back."
+  def sign_in_failures_minutes_ago(email, minutes) do
+    shift = &DateTime.add(&1, -minutes * 60, :second)
+
+    [count] =
+      SignInFailureCount
+      |> Ash.Query.filter(email == ^String.downcase(email))
+      |> Ash.read!(authorize?: false)
+
+    Ash.Seed.update!(count, %{
+      failed_at: Enum.map(count.failed_at, shift),
+      locked_until: count.locked_until && shift.(count.locked_until)
+    })
   end
 end

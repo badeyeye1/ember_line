@@ -5,10 +5,13 @@ defmodule EmberLine.Accounts.SignInTest do
   import EmberLine.Given.Account
   import EmberLine.ScenarioCase
 
+  require Ash.Query
+
   alias EmberLine.Accounts.User
 
   @device "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-  @wrong "That password doesn't match. Try again or reset it."
+  @wrong "That email and password don't match. Try again or reset your password."
+  @locked "Too many attempts. Try again in 15 minutes, or reset your password."
 
   defp sign_in(email, password, keep \\ true), do: User.sign_in(email, password, keep, @device)
 
@@ -65,9 +68,6 @@ defmodule EmberLine.Accounts.SignInTest do
     assert error_message?(error, "Enter your work email, like name@company.com.")
   end
 
-  # Deliberately not the model's wording ("No account uses nobody@company.com. ...").
-  # Decided 2026-11-19: an unknown email gets the same answer as a wrong
-  # password, so sign-in doesn't reveal which emails have accounts.
   test "No account for the email" do
     assert {:error, error} = sign_in("nobody@company.com", "demo1234a")
     assert error_message?(error, @wrong)
@@ -108,6 +108,89 @@ defmodule EmberLine.Accounts.SignInTest do
   test "email is matched ignoring case" do
     verified_account("alex@acme.dev")
     assert {:ok, _} = sign_in("Alex@Acme.dev", "demo1234a")
+  end
+
+  test "Too many wrong passwords" do
+    verified_account("alex@acme.dev")
+    sign_in_failed("alex@acme.dev", 5)
+    sign_in_failures_minutes_ago("alex@acme.dev", 2)
+
+    # The right password doesn't help while the address is locked.
+    assert {:error, error} = sign_in("alex@acme.dev", "demo1234a")
+    assert error_message?(error, @locked)
+  end
+
+  test "Too many tries on an email with no account" do
+    sign_in_failed("nobody@company.com", 5)
+    sign_in_failures_minutes_ago("nobody@company.com", 2)
+
+    assert {:error, error} = sign_in("nobody@company.com", "demo1234a")
+    assert error_message?(error, @locked)
+  end
+
+  test "The lock lifts 15 minutes after the fifth failure" do
+    account = verified_account("alex@acme.dev")
+    sign_in_failed("alex@acme.dev", 5)
+    sign_in_failures_minutes_ago("alex@acme.dev", 15)
+
+    assert {:ok, _} = sign_in("alex@acme.dev", "demo1234a")
+    [_verify, signed_in] = assert_events("SignedIn", account.id, 2)
+    assert signed_in.data["method"] == "password"
+    assert failures("alex@acme.dev") == 0
+  end
+
+  test "A successful sign-in clears the count" do
+    verified_account("alex@acme.dev")
+    sign_in_failed("alex@acme.dev", 4)
+
+    assert {:ok, _} = sign_in("alex@acme.dev", "demo1234a")
+    assert failures("alex@acme.dev") == 0
+
+    # One more wrong password is failure 1, not 5: the next attempt isn't locked.
+    sign_in_failed("alex@acme.dev", 1)
+    assert failures("alex@acme.dev") == 1
+    assert {:ok, _} = sign_in("alex@acme.dev", "demo1234a")
+  end
+
+  test "Email case doesn't matter for the count" do
+    verified_account("alex@acme.dev")
+    sign_in_failed("alex@acme.dev", 4)
+
+    assert {:error, error} = sign_in("Alex@Acme.dev", "wrong-password1")
+    assert error_message?(error, @wrong)
+
+    # That was failure 5 for alex@acme.dev: the next attempt is locked.
+    assert {:error, error} = sign_in("alex@acme.dev", "demo1234a")
+    assert error_message?(error, @locked)
+  end
+
+  # Not a model scenario: the lock comes before verification, too.
+  test "a locked address is locked even before it's verified" do
+    account_registered(email: "ada@company.com", password: "secret123")
+    sign_in_failed("ada@company.com", 5)
+
+    assert {:error, error} = sign_in("ada@company.com", "secret123")
+    assert error_message?(error, @locked)
+  end
+
+  # Not a model scenario: failures older than 15 minutes drop out of the count.
+  test "failures older than 15 minutes don't count" do
+    verified_account("alex@acme.dev")
+    sign_in_failed("alex@acme.dev", 4)
+    sign_in_failures_minutes_ago("alex@acme.dev", 16)
+    sign_in_failed("alex@acme.dev", 1)
+
+    assert failures("alex@acme.dev") == 1
+    assert {:ok, _} = sign_in("alex@acme.dev", "demo1234a")
+  end
+
+  defp failures(email) do
+    case EmberLine.Accounts.SignInFailureCount
+         |> Ash.Query.filter(email == ^email)
+         |> Ash.read!(authorize?: false) do
+      [] -> 0
+      [count] -> length(count.failed_at)
+    end
   end
 
   defp unverified_account_id(%{errors: errors}),
