@@ -60,3 +60,15 @@ wording of labels and buttons**, not the sample data: real data comes from the r
 | `scenario-dialog` | Scenario screenshot dialog | [scenario-dialog.desktop.png](screens/scenario-dialog.desktop.png) · [phone](screens/scenario-dialog.phone.png) · [markup](screens/scenario-dialog.html) | `view-scenario` (state view), `draw-scenario` (state change) |
 | `comments` | Discussion drawer | [comments.desktop.png](screens/comments.desktop.png) · [phone](screens/comments.phone.png) · [markup](screens/comments.html) | `view-threads` (state view), `start-thread` (state change), `post-reply` (state change), `resolve-thread` (state change), `reopen-thread` (state change), `dismiss-suggestion` (state change), `add-suggested-scenario` (state change), `resolve-suggestion-thread` (automation) |
 | `share` | Share dialog | [share.desktop.png](screens/share.desktop.png) · [phone](screens/share.phone.png) · [markup](screens/share.html) | `view-share` (state view), `share-invite` (state change), `remove-access` (state change) |
+| `features` | Features dialog | [features.desktop.png](screens/features.desktop.png) · [phone](screens/features.phone.png) · [markup](screens/features.html) | `confirm-features`, `create-confirmed-features`, `add-feature`, `assign-slices-to-feature`, `rename-feature`, `assign-feature-owner`, `merge-features`, `remove-feature` |
+
+## Features on the board
+
+`board`, `build` and `slice-page` were captured again with features turned on: the board shows the feature chips, Build
+filters by feature, and the slice page has a Feature menu. Only those parts changed on those screens.
+
+The board (`board`) also shows the feature chips and, with a feature selected, its boundary panel: what it reads from
+other features, what others read from it, and what others expect of it. Reference: [features-board.desktop.png](screens/features-board.desktop.png)
+· [phone](screens/features-board.phone.png) · [markup](screens/features-board.html). Slices: `identify-features`,
+`view-features`, `view-feature-boundary`, `expect-event`, `derive-feature`, `export-feature`. On the slice page,
+`move-slice-to-feature` is the Feature menu.

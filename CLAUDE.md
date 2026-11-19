@@ -31,6 +31,7 @@ This repo is Emberline built with itself: `docs/model.json` is its event model, 
 |---|---|---|
 | Project | **event sourced** | Commanded aggregate, events in the EventStore, read models built by projections |
 | Slice | **event sourced** | Commanded aggregate, events in the EventStore, read models built by projections |
+| Feature | **event sourced** | Commanded aggregate, like Project and Slice |
 | Account, Member, Notification, Thread, Workspace | state stored | Ash resources on AshPostgres tables; Ash actions write directly |
 
 - **Account** is the AshAuthentication `User` resource. Don't event source it.
@@ -75,6 +76,7 @@ test/ember_line/modeling/ # one test file per slice, written from its scenarios
 ## Working on a slice
 
 1. Read the slice in `docs/model.json`: its command, events, read model, screen and scenarios.
+   Each slice belongs to the feature named in `model.json`. A pull request only touches one feature's slices.
 2. Turn each Given/When/Then scenario into a test before writing any code: Given = earlier events, When = the command, Then = the new events or the error.
 3. Build only that slice: command, aggregate handling, event, projection or read model, screen, and its router entry.
    Build the screen from `docs/design/screens/<screen>.*` using the shared UI components.
