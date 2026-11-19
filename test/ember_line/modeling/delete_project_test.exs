@@ -128,8 +128,11 @@ defmodule EmberLine.Modeling.DeleteProjectTest do
       Project,
       [created(ctx)],
       delete(ctx, deleted_by: nil, confirmed: true),
-      {:error, :not_allowed}
+      {:error, :delete_not_allowed}
     )
+
+    assert Errors.message(:delete_not_allowed) ==
+             "Only editors and admins can delete a project."
   end
 
   # Not a model scenario: ProjectDeleted survives the EventStore's JSON round trip.

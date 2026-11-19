@@ -84,7 +84,12 @@ defmodule EmberLineWeb.ProjectsLiveTest do
 
     submit(view, %{name: "Billing API", source_type: "github", repo_url: ""})
 
-    assert has_element?(view, "#new-project-form", "Add the GitHub repository URL.")
+    assert has_element?(
+             view,
+             "#new-project-form",
+             "Paste the GitHub repository address, like https://github.com/owner/repo."
+           )
+
     assert ProjectList.for_workspace!(ctx.workspace) == []
   end
 
