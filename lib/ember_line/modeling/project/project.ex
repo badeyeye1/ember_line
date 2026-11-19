@@ -5,11 +5,15 @@ defmodule EmberLine.Modeling.Project do
   the command.
   """
 
-  alias EmberLine.Modeling.Project.{CreateProject, ProjectCreated}
+  alias EmberLine.Modeling.Project.{CreateProject, DeleteProject, ProjectCreated, ProjectDeleted}
 
-  defstruct [:project_id]
+  defstruct [:project_id, :name, deleted?: false]
 
-  @type t :: %__MODULE__{project_id: Ecto.UUID.t() | nil}
+  @type t :: %__MODULE__{
+          project_id: Ecto.UUID.t() | nil,
+          name: String.t() | nil,
+          deleted?: boolean()
+        }
 
   # create-project
 
@@ -26,8 +30,22 @@ defmodule EmberLine.Modeling.Project do
     end
   end
 
-  def apply(%__MODULE__{} = project, %ProjectCreated{project_id: id}),
-    do: %{project | project_id: id}
+  # delete-project
+
+  def execute(%__MODULE__{} = project, %DeleteProject{} = command) do
+    cond do
+      is_nil(project.project_id) or project.deleted? -> {:error, :project_not_found}
+      # Until Member roles exist, "allowed" means signed in.
+      is_nil(command.deleted_by) -> {:error, :not_allowed}
+      command.confirmed != true -> {:error, {:confirm_delete, project.name}}
+      true -> project_deleted(command)
+    end
+  end
+
+  def apply(%__MODULE__{} = project, %ProjectCreated{project_id: id, name: name}),
+    do: %{project | project_id: id, name: name}
+
+  def apply(%__MODULE__{} = project, %ProjectDeleted{}), do: %{project | deleted?: true}
 
   defp project_created(%CreateProject{} = command) do
     %ProjectCreated{
@@ -43,6 +61,14 @@ defmodule EmberLine.Modeling.Project do
       created_at: command.created_at,
       created_by: command.created_by,
       workspace_id: command.workspace_id
+    }
+  end
+
+  defp project_deleted(%DeleteProject{} = command) do
+    %ProjectDeleted{
+      project_id: command.project_id,
+      deleted_by: command.deleted_by,
+      deleted_at: command.deleted_at
     }
   end
 

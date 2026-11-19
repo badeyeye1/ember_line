@@ -11,7 +11,9 @@ defmodule EmberLine.Modeling.Projections.ProjectListProjection do
     name: "ProjectListProjection",
     consistency: :strong
 
-  alias EmberLine.Modeling.Project.ProjectCreated
+  import Ecto.Query, only: [from: 2]
+
+  alias EmberLine.Modeling.Project.{ProjectCreated, ProjectDeleted}
   alias EmberLine.Modeling.Projections.ProjectList
 
   # "add a project row with its name, description, stack, storage mode and source"
@@ -36,6 +38,15 @@ defmodule EmberLine.Modeling.Projections.ProjectListProjection do
       ],
       on_conflict: :nothing,
       conflict_target: [:project_id]
+    )
+  end)
+
+  # "remove the project's row"
+  project(%ProjectDeleted{project_id: project_id}, _metadata, fn multi ->
+    Ecto.Multi.delete_all(
+      multi,
+      :project_list,
+      from(row in ProjectList, where: row.project_id == ^project_id)
     )
   end)
 end
