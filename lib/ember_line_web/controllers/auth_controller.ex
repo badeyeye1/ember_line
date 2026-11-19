@@ -2,6 +2,9 @@ defmodule EmberLineWeb.AuthController do
   use EmberLineWeb, :controller
   use AshAuthentication.Phoenix.Controller
 
+  alias AshAuthentication.Strategy.RememberMe.Plug.Helpers, as: RememberMeCookie
+  alias EmberLine.Accounts.User
+
   def success(conn, activity, user, _token) do
     return_to = get_session(conn, :return_to) || ~p"/"
 
@@ -56,8 +59,12 @@ defmodule EmberLineWeb.AuthController do
   def sign_out(conn, _params) do
     return_to = get_session(conn, :return_to) || ~p"/"
 
+    # "Keep me signed in" must not outlive signing out.
+    {:ok, remember_me} = AshAuthentication.Info.strategy(User, :remember_me)
+
     conn
     |> clear_session(:ember_line)
+    |> RememberMeCookie.delete_remember_me_cookie(to_string(remember_me.cookie_name))
     |> put_flash(:info, "You are now signed out")
     |> redirect(to: return_to)
   end

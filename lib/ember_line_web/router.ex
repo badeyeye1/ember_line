@@ -20,6 +20,8 @@ defmodule EmberLineWeb.Router do
     }
 
     plug :load_from_session
+    # "Keep me signed in" (slice signin): the remember-me cookie signs back in.
+    plug :sign_in_with_remember_me
   end
 
   pipeline :api do
@@ -71,6 +73,7 @@ defmodule EmberLineWeb.Router do
     end
 
     post "/verify/session", VerifySessionController, :create
+    post "/session", SessionController, :create
 
     auth_routes AuthController, EmberLine.Accounts.User, path: "/auth"
 
