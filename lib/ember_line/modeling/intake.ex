@@ -10,6 +10,7 @@ defmodule EmberLine.Modeling.Intake do
   """
 
   alias EmberLine.Modeling.Errors
+  alias EmberLine.Modeling.Intake.ZipEntry
   alias EmberLine.Modeling.Project.PrototypeLimits
 
   @types %{
@@ -49,17 +50,30 @@ defmodule EmberLine.Modeling.Intake do
     kept = Enum.filter(usable, &(&1.name in kept_names))
     too_large = for f <- kept, f.size > PrototypeLimits.max_file_bytes(), do: f.name
 
-    stored =
-      for f <- Enum.sort_by(kept, & &1.name), f.name not in too_large do
-        %{name: f.name, type: type(f.name), content: f.load.()}
+    total_bytes = kept |> Enum.map(& &1.size) |> Enum.sum()
+
+    # Files are only read when the load can succeed: none too large and the
+    # total within 100 MB. An archive entry that holds more than it declares
+    # can't be read.
+    {read, broken} =
+      if too_large == [] and total_bytes <= PrototypeLimits.max_total_bytes() do
+        kept
+        |> Enum.sort_by(& &1.name)
+        |> Enum.map(&{&1, &1.load.()})
+        |> Enum.split_with(&match?({_file, {:ok, _content}}, &1))
+      else
+        {[], []}
       end
+
+    stored =
+      for {f, {:ok, content}} <- read, do: %{name: f.name, type: type(f.name), content: content}
 
     %{
       file_names: usable |> Enum.map(& &1.name) |> Enum.sort(),
-      unreadable_file_names: Enum.reverse(unreadable),
+      unreadable_file_names: Enum.reverse(unreadable) ++ Enum.map(broken, &elem(&1, 0).name),
       ignored_file_names: Enum.reverse(ignored),
       too_large_file_names: Enum.sort(too_large),
-      total_bytes: kept |> Enum.map(& &1.size) |> Enum.sum(),
+      total_bytes: total_bytes,
       interactive: interactive?(stored, too_large),
       files: stored
     }
@@ -87,7 +101,7 @@ defmodule EmberLine.Modeling.Intake do
         end
 
       Map.has_key?(@types, extension(name)) ->
-        {[Map.put_new(file, :load, fn -> file.content end) | usable], ignored, unreadable}
+        {[Map.put_new(file, :load, fn -> {:ok, file.content} end) | usable], ignored, unreadable}
 
       true ->
         {usable, [name | ignored], unreadable}
@@ -99,13 +113,15 @@ defmodule EmberLine.Modeling.Intake do
     case :zip.list_dir(content) do
       {:ok, [_comment | entries]} ->
         {:ok,
-         for {:zip_file, path, info, _comment, _offset, _size} <- entries,
+         for {:zip_file, path, info, _comment, offset, compressed_size} <- entries,
              elem(info, 2) == :regular do
+           size = elem(info, 1)
+
            %{
              name: Path.basename(to_string(path)),
-             size: elem(info, 1),
+             size: size,
              content: nil,
-             load: fn -> unzip_one(content, path) end
+             load: fn -> ZipEntry.read(content, offset, compressed_size, size) end
            }
          end}
 
@@ -115,11 +131,6 @@ defmodule EmberLine.Modeling.Intake do
   end
 
   defp zip_entries(_not_uploaded), do: :error
-
-  defp unzip_one(zip, path) do
-    {:ok, [{_path, content}]} = :zip.unzip(zip, [:memory, file_list: [path]])
-    content
-  end
 
   # Interactive: exactly one file was kept, it's HTML, and it links to #
   # anchors or has a script that shows or hides sections.

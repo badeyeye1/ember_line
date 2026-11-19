@@ -61,6 +61,8 @@ defmodule EmberLineWeb.BoardLive do
   defp handle_progress(:prototype, _entry, socket), do: {:noreply, maybe_load_files(socket)}
 
   # Loads once every chosen file has arrived (or was too big to send).
+  # `path` is the temporary file LiveView wrote the upload to, not user input.
+  # sobelow_skip ["Traversal.FileModule"]
   defp maybe_load_files(socket) do
     entries = socket.assigns.uploads.prototype.entries
 

@@ -347,6 +347,29 @@ defmodule EmberLine.Modeling.LoadPrototypeTest do
     assert read.unreadable_file_names == ["broken.zip"]
   end
 
+  test "an archive entry holding more than it declares is unreadable, and isn't unpacked" do
+    big = :binary.copy(<<0>>, 5_000_000)
+    {:ok, {_, zip}} = :zip.create(~c"bomb.zip", [{~c"home.html", big}], [:memory])
+
+    # Declare 1000 bytes in both headers; the data still unpacks to 5 MB.
+    zip = declare_size(zip, <<0x02014B50::little-32>>, 24, 1000)
+    zip = declare_size(zip, <<0x04034B50::little-32>>, 22, 1000)
+
+    read = Intake.read([file("bomb.zip", zip)])
+
+    assert read.file_names == ["home.html"]
+    assert read.unreadable_file_names == ["home.html"]
+    assert read.files == []
+  end
+
+  test "a .zip's entries are read whole when they hold what they declare" do
+    html = String.duplicate("<p>screen</p>", 10_000)
+    {:ok, {_, zip}} = :zip.create(~c"p.zip", [{~c"home.html", html}], [:memory])
+
+    assert %{files: [%{name: "home.html", content: ^html}], unreadable_file_names: []} =
+             Intake.read([file("p.zip", zip)])
+  end
+
   test "a command without loadedBy is refused", ctx do
     rejects(
       ctx,
@@ -361,6 +384,13 @@ defmodule EmberLine.Modeling.LoadPrototypeTest do
     json = event |> Jason.encode!() |> Jason.decode!(keys: :atoms)
 
     assert JsonDecoder.decode(struct(PrototypeLoaded, json)) == event
+  end
+
+  # Overwrites the uncompressed-size field `at` bytes after the header signature.
+  defp declare_size(zip, signature, at, size) do
+    {pos, _len} = :binary.match(zip, signature)
+    <<head::binary-size(pos + at), _old::little-32, tail::binary>> = zip
+    head <> <<size::little-32>> <> tail
   end
 
   defp file(name, content), do: %{name: name, size: byte_size(content), content: content}
