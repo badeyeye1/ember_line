@@ -1,14 +1,21 @@
 defmodule EmberLineWeb.BoardLive do
   @moduledoc """
-  Screen board, the intake panel only (slice load-prototype): drop or choose
-  a prototype's files, or paste its HTML. The rest of the board (screens,
+  Screen board, the intake panel only: drop or choose a prototype's files,
+  or paste its HTML (slice load-prototype), then Split into pages (slice
+  split-pages).
+
+  Split into pages shows for an interactive prototype loaded on this visit.
+  Until view-intake's read model exists, the board can't tell which
+  prototype a project has after a reload. The rest of the board (screens,
   timeline, slices, the code banner, Derive model) belongs to other slices.
   """
   use EmberLineWeb, :live_view
 
   alias EmberLine.Accounts.Workspace
   alias EmberLine.Modeling.{Errors, Intake, Prototypes}
+  alias EmberLine.Modeling.Project
   alias EmberLine.Modeling.Projections.ProjectList
+  alias EmberLineWeb.PrototypeController
 
   on_mount {EmberLineWeb.LiveUserAuth, :live_user_required}
 
@@ -28,6 +35,7 @@ defmodule EmberLineWeb.BoardLive do
        socket
        |> assign(page_title: project.name, workspace: workspace, project: project)
        |> assign(error: nil, notes: [], paste: to_form(%{"html" => ""}, as: :paste))
+       |> assign(loaded: nil, pages: [])
        |> allow_upload(:prototype,
          accept: :any,
          max_entries: @max_entries,
@@ -57,6 +65,45 @@ defmodule EmberLineWeb.BoardLive do
        |> assign(paste: to_form(%{"html" => html}, as: :paste))}
     end
   end
+
+  # split-pages: the hook sends the pages it finds, then what it found in all.
+  def handle_event("split_page", %{"title" => title, "html" => html} = page, socket) do
+    if socket.assigns.loaded && length(socket.assigns.pages) < Project.max_pages() do
+      page = %{title: title, role: page["role"], route: page["route"], html: html}
+      {:noreply, update(socket, :pages, &(&1 ++ [page]))}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("split_done", params, %{assigns: %{loaded: %{} = loaded}} = socket) do
+    result =
+      Prototypes.split(
+        socket.assigns.project.project_id,
+        loaded.prototype_id,
+        socket.assigns.pages,
+        count(params["found"]),
+        count(params["roles"]),
+        params["timed_out"] == true,
+        socket.assigns.current_user.id
+      )
+
+    socket = assign(socket, pages: [])
+
+    case result do
+      {:ok, split} ->
+        {:noreply,
+         assign(socket, error: nil, notes: [Prototypes.split_note(loaded.file_name, split)])}
+
+      {:error, reason} ->
+        {:noreply, assign(socket, error: Errors.message(reason), notes: [])}
+    end
+  end
+
+  def handle_event("split_done", _params, socket), do: {:noreply, socket}
+
+  defp count(n) when is_integer(n) and n >= 0, do: n
+  defp count(_not_a_count), do: 0
 
   defp handle_progress(:prototype, _entry, socket), do: {:noreply, maybe_load_files(socket)}
 
@@ -104,12 +151,28 @@ defmodule EmberLineWeb.BoardLive do
             &is_nil/1
           )
 
-        assign(socket, error: nil, notes: notes)
+        assign(socket,
+          error: nil,
+          notes: notes,
+          pages: [],
+          loaded: loaded_prototype(loaded, intake)
+        )
 
       {:error, reason} ->
         assign(socket, error: Errors.message(reason), notes: [])
     end
   end
+
+  # The loaded prototype, for Split into pages: its one file when it has one.
+  defp loaded_prototype(loaded, %{file_names: [file_name], interactive: true}) do
+    %{
+      prototype_id: loaded.prototype_id,
+      file_name: file_name,
+      src: ~p"/prototype/#{PrototypeController.token(loaded.prototype_id, file_name)}"
+    }
+  end
+
+  defp loaded_prototype(_loaded, _intake), do: nil
 
   @impl true
   def render(assigns) do
@@ -149,6 +212,17 @@ defmodule EmberLineWeb.BoardLive do
                 placeholder="…or paste the HTML of a Claude prototype"
               >{Phoenix.HTML.Form.normalize_value("textarea", @paste[:html].value)}</textarea>
             </.form>
+            <div :if={@loaded} class="flex flex-wrap gap-2">
+              <.button
+                id="split-pages"
+                type="button"
+                phx-hook=".Splitter"
+                data-src={@loaded.src}
+                title="Run the prototype, visit every page for every role, and turn each into its own HTML file"
+              >
+                Split into pages
+              </.button>
+            </div>
           </div>
         </section>
 
@@ -156,6 +230,71 @@ defmodule EmberLineWeb.BoardLive do
         <.notice :for={{note, i} <- Enum.with_index(@notes)} id={"intake-note-#{i}"}>{note}</.notice>
       </section>
     </Layouts.app>
+    <script :type={Phoenix.LiveView.ColocatedHook} name=".Splitter">
+      // Runs the loaded prototype in a hidden, sandboxed frame. The crawler in
+      // it (priv/prototype/bridge.js) visits every role and page and posts each
+      // page back; the first 80 go to the server, then the counts. It stops
+      // after 4 minutes, keeping what it found.
+      const MAX_PAGES = 80
+      const TIME_LIMIT = 4 * 60 * 1000
+
+      export default {
+        mounted() {
+          this.el.addEventListener("click", () => this.split())
+        },
+        destroyed() {
+          this.stop?.()
+        },
+        split() {
+          if (this.stop) return
+          const box = document.createElement("div")
+          box.className = "ui-offscreen"
+          box.setAttribute("aria-hidden", "true")
+          const frame = document.createElement("iframe")
+          frame.setAttribute("sandbox", "allow-scripts")
+          frame.tabIndex = -1
+          frame.src = this.el.dataset.src
+          box.append(frame)
+
+          let found = 0
+          const roles = new Set()
+          const onMessage = (e) => {
+            if (e.source !== frame.contentWindow) return
+            const d = e.data || {}
+            if (d.t === "em-ready") {
+              frame.contentWindow.postMessage({t: "em-crawl", max: 1000}, "*")
+            } else if (d.t === "em-page" && d.page) {
+              found += 1
+              if (d.page.role) roles.add(d.page.role)
+              if (found <= MAX_PAGES) {
+                const {title, role, route, html} = d.page
+                this.pushEvent("split_page", {title: String(title || ""), role, route, html: String(html || "")})
+              }
+            } else if (d.t === "em-crawl-done") {
+              finish(false)
+            }
+          }
+          const timer = setTimeout(() => finish(true), TIME_LIMIT)
+          this.stop = () => {
+            clearTimeout(timer)
+            window.removeEventListener("message", onMessage)
+            box.remove()
+            this.el.disabled = false
+            this.el.removeAttribute("aria-busy")
+            this.stop = null
+          }
+          const finish = (timedOut) => {
+            this.stop()
+            this.pushEvent("split_done", {found, roles: roles.size, timed_out: timedOut})
+          }
+
+          window.addEventListener("message", onMessage)
+          this.el.disabled = true
+          this.el.setAttribute("aria-busy", "true")
+          document.body.append(box)
+        }
+      }
+    </script>
     """
   end
 end

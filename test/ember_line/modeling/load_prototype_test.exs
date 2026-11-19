@@ -4,7 +4,7 @@ defmodule EmberLine.Modeling.LoadPrototypeTest do
   use EmberLine.EventModelCase
 
   alias Commanded.Serialization.JsonDecoder
-  alias EmberLine.Modeling.{Errors, Intake, PrototypeFile}
+  alias EmberLine.Modeling.{Errors, Intake, PrototypeFile, PrototypePage, Prototypes}
   alias EmberLine.Modeling.Project
 
   alias EmberLine.Modeling.Project.{
@@ -326,6 +326,31 @@ defmodule EmberLine.Modeling.LoadPrototypeTest do
     assert Intake.skipped_note(80, 10) == "Loaded the first 80 of 90 files."
   end
 
+  test "Loading clears an earlier split", ctx do
+    # Through the Commanded app: the stored pages go with the split.
+    dispatch!(%EmberLine.Modeling.Project.CreateProject{
+      project_id: ctx.pr,
+      name: "Emberline",
+      source_type: :new,
+      created_by: ctx.u1,
+      created_at: @at
+    })
+
+    app = Intake.paste(~s(<a href="#b">B</a><section id="b"></section>))
+    assert {:ok, %{prototype_id: p1}} = Prototypes.load(ctx.pr, :paste, app, ctx.u1)
+
+    pages = [%{title: "Home", role: "", route: "#home", html: "<p>home</p>"}]
+    assert {:ok, %{page_count: 1}} = Prototypes.split(ctx.pr, p1, pages, 1, 0, false, ctx.u1)
+    assert [_page] = PrototypePage.for_prototype!(p1)
+
+    v2 = Intake.read([file("app-v2.html", ~s(<a href="#c">C</a>))])
+    assert {:ok, %{prototype_id: ^p1}} = Prototypes.load(ctx.pr, :files, v2, ctx.u1)
+
+    # The prototype is no longer split; its stored pages are removed.
+    assert PrototypePage.for_prototype!(p1) == []
+    assert {:ok, %{page_count: 1}} = Prototypes.split(ctx.pr, p1, pages, 1, 0, false, ctx.u1)
+  end
+
   # --- not model scenarios ----------------------------------------------------
 
   test "files are sorted into usable, ignored and unreadable, .zip archives opened" do
@@ -389,7 +414,7 @@ defmodule EmberLine.Modeling.LoadPrototypeTest do
   # Overwrites the uncompressed-size field `at` bytes after the header signature.
   defp declare_size(zip, signature, at, size) do
     {pos, _len} = :binary.match(zip, signature)
-    <<head::binary-size(pos + at), _old::little-32, tail::binary>> = zip
+    <<head::binary-size(^pos + ^at), _old::little-32, tail::binary>> = zip
     head <> <<size::little-32>> <> tail
   end
 

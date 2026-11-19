@@ -3,7 +3,7 @@ defmodule EmberLine.Modeling.Router do
   use Commanded.Commands.Router
 
   alias EmberLine.Modeling.Project
-  alias EmberLine.Modeling.Project.{CreateProject, DeleteProject, LoadPrototype}
+  alias EmberLine.Modeling.Project.{CreateProject, DeleteProject, LoadPrototype, SplitPrototype}
 
   identify Project, by: :project_id, prefix: "project-"
 
@@ -15,4 +15,7 @@ defmodule EmberLine.Modeling.Router do
 
   # load-prototype
   dispatch LoadPrototype, to: Project
+
+  # split-pages
+  dispatch SplitPrototype, to: Project
 end
