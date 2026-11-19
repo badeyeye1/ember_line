@@ -46,6 +46,7 @@ Everything about the brief, the build steps, the status messages, the pull reque
 Follow the event-sourced skill's ten steps, with these differences:
 
 - **Step 2 (read):** also read the existing schema: migrations, resources, and any Ecto schemas the codebase still uses. **Reuse existing tables and columns** when they already hold the slice's state; don't create a parallel table.
+- **Step 3 (check the spec):** the same spec questions as the event-sourced skill. In a state-stored stream, a unique value also needs a database guarantee (a unique index or identity), so a missing "taken" scenario is always a question: the agent needs the on-screen text for the constraint error.
 - **Step 5 (write side):** add the action, its validations, constraints for raceable rules, and the outbox change. Add a migration with `mix ash.codegen <name>` if columns or tables are new.
 - **Step 6 (read side):** a read action with exactly the read model's fields, and calculations or aggregates for derived values. Add a read table only with a reason in the PR.
 - **Migrations are additive** (see "Changing tables safely"). Never drop or rename a column in a slice's pull request.
@@ -271,6 +272,7 @@ State-stored apps have no event history to protect, but they do have data. In a 
 ## Done means
 - Every scenario has a passing test with the same title: Given reached through actions, Then checking the result, the stored state and (with the outbox) the event row.
 - Every rule is on the action, with the scenario's exact error text, and raceable rules also have a database guarantee.
+- Every rule in the code has a scenario in the model, and no spec question is still open.
 - Every value a screen shows comes from a read action, returning the read model's fields.
 - Migrations only add.
 - The pull request is open with the template filled in, and `checks` were reported.

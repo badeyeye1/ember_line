@@ -318,10 +318,19 @@ Send a status message at each step (see "Talking to the Build board").
 
 2. **Read before you write.** Read the domain and resource for the slice's stream, if they exist, and any slice already built on the same stream. Read the screen's LiveView, the router, the test support modules and `mix.lock`. Copy the conventions you find: module naming, domain layout, how existing commands are dispatched, test helpers. Send `read`.
 
-3. **Check the spec against the code.** Stop and ask (see "When the spec and the code disagree") if any of these are true:
+3. **Check the spec before writing tests.** Run the checklist in `review-spec-skill.md`, "What to look for" (5), on this slice, plus the code checks below. Stop and ask (see "Spec questions") if any of these are true:
    - an event this slice reads isn't produced anywhere in the code or the model;
    - a field name contradicts an existing one (`customerId` where the stream uses `accountId`);
-   - a scenario needs a rule the spec doesn't define.
+   - a scenario needs a rule the spec doesn't define;
+   - an event field has no source: it isn't in the command, in the stream's earlier events, or a timestamp or generated id;
+   - one value has two names (`actorAccountId` on the command, `accountId` on the event);
+   - a unique value has no "taken" scenario, or a code, password or token has no wrong, expired and too-many-tries scenarios;
+   - a string field should be one of a fixed list;
+   - the screen's reference (`docs/design/screens/<screen>.*`) shows a button, link or number this slice doesn't cover and no other slice does;
+   - a rule depends on a slice that isn't built yet, and no scenario says what holds until then;
+   - a value the system works out (slug, default name, expiry) has no scenario showing how.
+
+   Ask everything in one go, then wait. Don't write a guessed rule, even provisionally: a rule with no scenario has no test, and it tends to stay.
 
 4. **Write the tests first,** one per scenario, keeping the scenario titles (see "Scenarios become tests"). They should fail. Send `wrote` with the test file.
 
@@ -581,6 +590,19 @@ Follow the repo's layout if it has one. Otherwise:
 | state_view | `lib/<app>/<domain>/<read_model>.ex` (resource and projections), migration, a code interface on the domain (`list_<read_model>`), the LiveView, tests |
 | automation | `event_handlers` on the resource that reacts, or a webhook controller or Oban job that dispatches the command, plus tests. A webhook command records `providerEventId` so that a repeat delivery does nothing. |
 
+## Spec questions
+
+When step 3 finds gaps, post them together as one message on the slice (and in the pull request or issue, if there is one), send `blocked`, and wait. Number the questions. For each, say what's missing, why the code needs it, and a suggested answer in the model's terms (a scenario with the exact error text, a field to drop or rename, a list of values):
+
+```text
+Spec questions for save-workspace:
+1. title: WorkspaceDetailsSaved has a title that SaveWorkspaceDetails doesn't take, so it would be recorded empty. Drop it from the event, or say where it comes from?
+2. Taken URL: no scenario covers a URL another workspace already uses. Suggested: "URL already taken" → error: That URL is taken. Try another.
+3. defaultStack is a plain string. Should the model list the allowed stacks?
+```
+
+The answers come back as a change to `docs/model.json` (made in the builder and exported). Pull it, re-read the slice, and carry on from step 4. If the person answers in chat instead, ask them to put it in the model first, so the next slice and the reviewer see the same thing.
+
 ## When the spec and the code disagree
 
 Don't guess silently. Post a question on the slice (it shows as a comment in the builder's Discussion), send `blocked`, and wait:
@@ -640,6 +662,7 @@ Built from the event model by the Event-Model Builder.
 ## Done means
 - Every scenario has a passing test with the same title, and the full suite is green.
 - Every name in the code matches the model: command, events, read model, and fields in snake_case.
+- Every rule in the code has a scenario in the model, and no spec question is still open.
 - Every error message on screen matches the `error:` text in its scenario.
 - No generated files were edited by hand, there are no warnings, and the code is formatted.
 - The pull request is open with the template filled in, and `checks` were reported.

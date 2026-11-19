@@ -87,6 +87,9 @@ Event Modeling rules (Adam Dymitruk's method):
 - Group events into streams: the aggregate or entity they belong to (e.g. "Order", "Customer"). Name the identity field after its stream and use that one name everywhere: events in the "Account" stream carry "accountId", not "customerId" or "userId".
 - Every event a slice reads must be produced by some slice. Facts that arrive from outside the app (payment provider webhooks, emails, schedulers, devices) get an "automation" slice that receives them and produces the event.
 - Keep the write side and the read side apart: a command only changes state by emitting events; a read model is only built by a projection that handles events. A command never reads a read model directly and a read model is never written by a command.
+- Every event field comes from the command, from earlier events of the same stream, or from the system (generated ids, timestamps). A value the system works out (a slug, a default name, an expiry) gets a scenario that shows the rule. Don't add a field nothing supplies.
+- One name per value: the command field and the event field for the same value have the same name. Who did it is "<verb>By" on both (savedBy, deletedBy).
+- A field that can only be one of a set is an enum listing the set, e.g. "plan: enum(free|team|business)", never a plain string.
 ```
 
 ### Reach rules (shared by Skills 2 and 5)
@@ -203,6 +206,8 @@ For each slice give:
 - "story": one plain-language sentence a business person understands, with no technical names.
 - fields for the command, each produced and read event, and the read model, taken from what the screen shows or collects.
 - 2 to 6 specs covering different scenarios: "success" (happy path), "error" (business rule violations), "empty" (no data yet) where it applies, and at least one "edge" case (boundaries, repeats, races, duplicates).
+- Always include these when they apply, even if the screen doesn't show them: a value that must be unique gets an "already taken" error with the words to show; a code, password or token gets "wrong", "expired" (say how long it lasts) and "too many tries" (say how many); a rule that needs something a later part of the app adds (roles, plans) says what holds until then.
+- Every button, link, form and number on this screen is covered by a slice: its trigger ("uiElement") or a read-model field.
 Specs are Given/When/Then. given: prior events as strings, e.g. "OrderPlaced(total: 40)" or "ItemAdded × 3"; empty list if nothing happened. when: the command call, e.g. "PlaceOrder(cartId: c-1)", or "query ReadModelName(...)" for views. then: resulting events or read-model states as strings; errors start with "error: ".
 Reply with ONLY one JSON object, no other text:
 {"slices":[{"id":string,"story":string,"uiElement":string,
@@ -422,3 +427,8 @@ The combined result is one model, which exports as JSON, as a CSV for Miro (one 
 - Each slice has 2–6 scenarios covering success, error, empty where it applies, and at least one edge case.
 - No navigation-only commands; no command reads a read model; no read model is written by a command.
 - No sample or template slices, streams or outcomes leak into a real project.
+- Every event field has a source (command, earlier event, or system), and one value has one name across command and event.
+- Unique values have a "taken" scenario; codes, passwords and tokens have wrong, expired and too-many-tries scenarios.
+- Fields that are one of a set are enums.
+- Every button, link and number on a screen is covered by a slice.
+- These are the review skill's `field_source`, `name_split`, `taken_case`, `secret_case`, `open_values` and `screen_gap` checks: see `review-spec-skill.md`.
