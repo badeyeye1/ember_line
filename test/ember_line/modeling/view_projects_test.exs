@@ -61,7 +61,7 @@ defmodule EmberLine.Modeling.ViewProjectsTest do
     assert edgemastery.source_type == :new
     assert edgemastery.is_sample == false
     assert edgemastery.created_at == ~U[2026-11-18 10:00:00Z]
-    assert edgemastery.created_by_id == ctx.account
+    assert edgemastery.created_by == ctx.account
     assert edgemastery.workspace_id == ctx.workspace
   end
 

@@ -32,7 +32,7 @@ defmodule EmberLine.Modeling.Projections.ProjectListProjection do
           source_type: event.source_type,
           is_sample: false,
           created_at: event.created_at,
-          created_by_id: event.created_by,
+          created_by: event.created_by,
           workspace_id: event.workspace_id
         }
       ],

@@ -45,7 +45,7 @@ defmodule EmberLine.Modeling.Projections.ProjectList do
     attribute :source_type, :atom, constraints: [one_of: [:new, :local, :github]], public?: true
     attribute :is_sample, :boolean, allow_nil?: false, default: false, public?: true
     attribute :created_at, :utc_datetime, allow_nil?: false, public?: true
-    attribute :created_by_id, :uuid, public?: true
+    attribute :created_by, :uuid, public?: true
     attribute :workspace_id, :uuid, public?: true
   end
 end
