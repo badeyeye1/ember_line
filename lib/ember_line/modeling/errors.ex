@@ -8,13 +8,18 @@ defmodule EmberLine.Modeling.Errors do
     # create-project
     project_name_required: {"ProjectNameRequired", "Give the project a name."},
     repo_url_required: {"RepoUrlRequired", "Add the GitHub repository URL."},
-    not_allowed: {"NotAllowed", "You don't have permission to do that."}
+    not_allowed: {"NotAllowed", "You don't have permission to do that."},
+    # delete-project: its scenarios give the screen's words, not a code.
+    project_not_found: {nil, "That project doesn't exist."}
   }
 
   @doc "The model's error code, e.g. `ProjectNameRequired`."
   def code(reason), do: @errors |> Map.fetch!(reason) |> elem(0)
 
   @doc "What the screen shows for the error."
+  def message({:confirm_delete, name}),
+    do: "Click Delete again to delete #{name}. This can't be undone."
+
   def message(reason) do
     case Map.fetch(@errors, reason) do
       {:ok, {_code, message}} -> message

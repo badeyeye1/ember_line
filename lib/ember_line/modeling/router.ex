@@ -3,10 +3,13 @@ defmodule EmberLine.Modeling.Router do
   use Commanded.Commands.Router
 
   alias EmberLine.Modeling.Project
-  alias EmberLine.Modeling.Project.CreateProject
+  alias EmberLine.Modeling.Project.{CreateProject, DeleteProject}
 
   identify Project, by: :project_id, prefix: "project-"
 
   # create-project
   dispatch CreateProject, to: Project
+
+  # delete-project
+  dispatch DeleteProject, to: Project
 end
