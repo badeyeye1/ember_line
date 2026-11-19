@@ -22,6 +22,7 @@ defmodule EmberLine.Accounts.Workspace do
   end
 
   code_interface do
+    define :set_up_workspace, args: [:name, :title]
     define :save_workspace_details
   end
 
@@ -50,6 +51,26 @@ defmodule EmberLine.Accounts.Workspace do
       # same URL; say it in the same words as the up-front check.
       error_handler &Validations.WorkspaceSlugValid.handle_identity_error/2
     end
+
+    # Command SetUpWorkspace (slice setup-workspace, the welcome form) →
+    # WorkspaceDetailsSaved and ProfileSaved. The web address follows the
+    # name (a taken one gets -2, -3, ...); savedBy is the actor.
+    update :set_up_workspace do
+      require_atomic? false
+      accept [:name]
+
+      argument :title, :string do
+        allow_nil? false
+        constraints match: ~r/\A(Product|Engineering|Design|Something else)\z/
+      end
+
+      validate Validations.CanChangeWorkspaceSettings
+      validate {Validations.WorkspaceNameGiven, message: "Give your workspace a name."}
+
+      change Changes.SlugFromName
+      change Changes.RecordWorkspaceDetailsSaved
+      change Changes.SaveTitleToProfile
+    end
   end
 
   policies do
@@ -59,7 +80,7 @@ defmodule EmberLine.Accounts.Workspace do
 
     # Who may save is a rule with the scenario's words, in
     # CanChangeWorkspaceSettings; the policy only needs someone acting.
-    policy action(:save_workspace_details) do
+    policy action([:save_workspace_details, :set_up_workspace]) do
       authorize_if actor_present()
     end
   end
