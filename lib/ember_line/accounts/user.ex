@@ -74,6 +74,7 @@ defmodule EmberLine.Accounts.User do
   code_interface do
     define :verify_email, args: [:account_id, :code, :device]
     define :pending_verification, args: [:account_id], not_found_error?: false
+    define :resend_verification_code, args: [:account_id]
   end
 
   actions do
@@ -221,6 +222,13 @@ defmodule EmberLine.Accounts.User do
       run EmberLine.Accounts.Actions.VerifyEmail
     end
 
+    # Command ResendVerificationCode → VerificationCodeResent (slice
+    # resend-code). See EmberLine.Accounts.Actions.ResendVerificationCode.
+    action :resend_verification_code, :map do
+      argument :account_id, :uuid, allow_nil?: false
+      run EmberLine.Accounts.Actions.ResendVerificationCode
+    end
+
     # Read model PendingVerification (slice view-verify): an account still
     # waiting to verify its email, with where and when its code was sent.
     # No result for an unknown or already verified account. Only server code
@@ -332,6 +340,11 @@ defmodule EmberLine.Accounts.User do
     # Anyone may try a code: the code is the proof. Tries are counted and
     # limited in the action.
     policy action(:verify_email) do
+      authorize_if always()
+    end
+
+    # Resends are limited to one every 30 seconds per account in the action.
+    policy action(:resend_verification_code) do
       authorize_if always()
     end
   end

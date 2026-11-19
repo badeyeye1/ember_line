@@ -39,6 +39,22 @@ defmodule EmberLineWeb.VerifyLiveTest do
     assert html =~ "Nothing to verify"
   end
 
+  test "Resend after the wait has passed", %{conn: conn} do
+    {account, _code} = account_registered()
+    code_sent_seconds_ago(account, 60)
+    {:ok, view, _html} = live(conn, ~p"/verify/#{VerifyLive.token_for(account)}")
+
+    assert view |> element("button", "Resend the code") |> render_click() =~ "Sent a new code."
+  end
+
+  test "Resend too soon", %{conn: conn} do
+    {account, _code} = account_registered()
+    {:ok, view, _html} = live(conn, ~p"/verify/#{VerifyLive.token_for(account)}")
+
+    assert view |> element("button", "Resend the code") |> render_click() =~
+             "You can resend in 30 s."
+  end
+
   test "Code is wrong", %{conn: conn} do
     {account, code} = account_registered()
     wrong = if code == "999999", do: "999998", else: "999999"

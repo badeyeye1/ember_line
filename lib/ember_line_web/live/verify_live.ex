@@ -6,7 +6,8 @@ defmodule EmberLineWeb.VerifyLive do
   to put in the browser's session.
 
   The address the code went to comes from the PendingVerification read model
-  (slice view-verify). "Resend the code" is resend-code, not built yet.
+  (slice view-verify). "Resend the code" runs ResendVerificationCode (slice
+  resend-code).
   """
   use EmberLineWeb, :live_view
 
@@ -63,6 +64,13 @@ defmodule EmberLineWeb.VerifyLive do
     end
   end
 
+  def handle_event("resend", _params, socket) do
+    case User.resend_verification_code(socket.assigns.account_id) do
+      {:ok, _} -> {:noreply, socket |> assign(error: nil) |> put_flash(:info, "Sent a new code.")}
+      {:error, error} -> {:noreply, put_flash(socket, :error, message(error))}
+    end
+  end
+
   defp message(%{errors: [%{message: message} | _]}), do: message
   defp message(_error), do: "Something went wrong. Try again."
 
@@ -103,7 +111,13 @@ defmodule EmberLineWeb.VerifyLive do
         <input type="hidden" name="token" value={@session_token} />
       </.form>
 
-      <p class="ui-auth-foot"><.link navigate={~p"/sign-in"}>Use a different email</.link></p>
+      <p class="ui-auth-foot">
+        Didn't get it?
+        <button type="button" class="ui-link cursor-pointer" phx-click="resend">
+          Resend the code
+        </button>
+        · <.link navigate={~p"/sign-in"}>Use a different email</.link>
+      </p>
     </Layouts.auth>
     """
   end
