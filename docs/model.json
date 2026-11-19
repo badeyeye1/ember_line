@@ -2,7 +2,7 @@
   "format": "event-model",
   "version": 1,
   "generator": "Event-Model Builder (prototype)",
-  "exportedAt": "2026-11-19T09:35:56.071Z",
+  "exportedAt": "2026-11-19T12:06:47.130Z",
   "project": {
     "id": "pmwldlygxbto7",
     "name": "EmberLine",
@@ -843,11 +843,11 @@
         "handles": [
           {
             "event": "AccountRegistered",
-            "does": "add a pending verification entry for the account with its email and the time it was registered"
+            "does": "add a pending entry with the email; codeSentAt = registeredAt, resendAvailableAt = registeredAt + 30 seconds"
           },
           {
             "event": "VerificationCodeResent",
-            "does": "update the entry's last code sent time so the resend wait can be shown"
+            "does": "codeSentAt = resentAt, resendAvailableAt = resentAt + 30 seconds"
           }
         ]
       },
@@ -1284,7 +1284,7 @@
       "feature": "f-accounts",
       "screen": "signin",
       "actor": "Visitor",
-      "story": "A visitor with an account enters their email and password and signs in to their workspace.",
+      "story": "A visitor with an account enters their email and password and signs in to their workspace. The browser reports the device (for example \"Chrome on macOS\"), shown later under active sessions.",
       "uiElement": "Sign in button",
       "command": {
         "name": "SignIn",
@@ -1292,7 +1292,8 @@
           "accountId: uuid",
           "email: string",
           "password: string",
-          "keepSignedIn: boolean"
+          "keepSignedIn: boolean",
+          "device: string"
         ]
       },
       "produces": [
@@ -1319,9 +1320,9 @@
             "AccountRegistered(accountId: a-1, email: alex@acme.dev)",
             "EmailVerified(accountId: a-1)"
           ],
-          "when": "SignIn(accountId: a-1, email: alex@acme.dev, password: demo1234, keepSignedIn: true)",
+          "when": "SignIn(accountId: a-1, email: alex@acme.dev, password: demo1234, keepSignedIn: true, device: Chrome on macOS)",
           "then": [
-            "SignedIn(accountId: a-1, method: password, keepSignedIn: true)"
+            "SignedIn(accountId: a-1, method: password, keepSignedIn: true, keepSignedIn: true, sessionId: tok-1, device: Chrome on macOS)"
           ]
         },
         {
@@ -1376,6 +1377,18 @@
           "then": [
             "error: Email not verified. Enter the 6-digit code to continue."
           ]
+        },
+        {
+          "kind": "error",
+          "title": "Too many wrong passwords",
+          "given": [
+            "AccountRegistered(accountId: a-1, email: alex@acme.dev)",
+            "5 wrong passwords for alex@acme.dev in the last 15 minutes"
+          ],
+          "when": "SignIn(accountId: a-1, email: alex@acme.dev, password: demo1234, keepSignedIn: true, device: Chrome on macOS)",
+          "then": [
+            "error: Too many attempts. Try again in 15 minutes, or reset your password."
+          ]
         }
       ]
     },
@@ -1388,13 +1401,14 @@
       "feature": "f-accounts",
       "screen": "signin",
       "actor": "Visitor",
-      "story": "A visitor signs in with one click using their GitHub or Google account instead of typing a password.",
+      "story": "A visitor signs in with one click using their GitHub or Google account instead of typing a password. The browser reports the device (for example \"Chrome on macOS\"), shown later under active sessions.",
       "uiElement": "Provider buttons",
       "command": {
         "name": "SignInWithProvider",
         "fields": [
           "accountId: uuid",
-          "provider: enum(github|google)"
+          "provider: enum(github|google)",
+          "device: string"
         ]
       },
       "produces": [
@@ -1421,9 +1435,9 @@
             "AccountRegistered(accountId: a-1, email: alex@acme.dev)",
             "EmailVerified(accountId: a-1)"
           ],
-          "when": "SignInWithProvider(accountId: a-1, provider: github)",
+          "when": "SignInWithProvider(accountId: a-1, provider: github, device: Chrome on macOS)",
           "then": [
-            "SignedIn(accountId: a-1, method: github)"
+            "SignedIn(accountId: a-1, method: oauth, keepSignedIn: false, sessionId: tok-1, device: Chrome on macOS)"
           ]
         },
         {
@@ -1435,7 +1449,7 @@
           ],
           "when": "SignInWithProvider(accountId: a-1, provider: google)",
           "then": [
-            "SignedIn(accountId: a-1, method: google)"
+            "SignedIn(accountId: a-1, method: oauth)"
           ]
         },
         {
@@ -1456,7 +1470,7 @@
           ],
           "when": "SignInWithProvider(accountId: a-1, provider: github)",
           "then": [
-            "SignedIn(accountId: a-1, method: github) recorded once more as a new sign-in; the screen button is disabled to prevent this"
+            "SignedIn(accountId: a-1, method: oauth) recorded once more as a new sign-in; the screen button is disabled to prevent this"
           ]
         }
       ]
@@ -1470,14 +1484,15 @@
       "feature": "f-accounts",
       "screen": "sso",
       "actor": "Visitor",
-      "story": "A person types their work email and continues; if their company has single sign-on set up for that email's domain, they are signed in through the company's identity provider, and if they are new they join the workspace as an editor.",
+      "story": "A person types their work email and continues; if their company has single sign-on set up for that email's domain, they are signed in through the company's identity provider, and if they are new they join the workspace as an editor. The browser reports the device (for example \"Chrome on macOS\"), shown later under active sessions.",
       "uiElement": "Continue with SSO button",
       "command": {
         "name": "SignInWithSso",
         "fields": [
           "email: string",
           "accountId: uuid",
-          "workspaceId: uuid"
+          "workspaceId: uuid",
+          "device: string"
         ]
       },
       "produces": [
@@ -1517,9 +1532,9 @@
             "AccountRegistered(accountId: a-1, email: alex@acme.dev)",
             "EmailVerified(accountId: a-1)"
           ],
-          "when": "SignInWithSso(email: alex@acme.dev)",
+          "when": "SignInWithSso(email: alex@acme.dev, device: Chrome on macOS)",
           "then": [
-            "SignedIn(accountId: a-1, method: sso)"
+            "SignedIn(accountId: a-1, method: sso, keepSignedIn: false, sessionId: tok-1, device: Chrome on macOS)"
           ]
         },
         {
@@ -1791,14 +1806,15 @@
       "feature": "f-accounts",
       "screen": "reset",
       "actor": "Visitor",
-      "story": "Someone who followed a reset link chooses a new password, confirms it, and is signed straight in with their email marked as verified.",
+      "story": "Someone who followed a reset link chooses a new password, confirms it, and is signed straight in with their email marked as verified. The browser reports the device (for example \"Chrome on macOS\"), shown later under active sessions.",
       "uiElement": "New password form",
       "command": {
         "name": "ResetPassword",
         "fields": [
           "accountId: uuid",
           "newPassword: string",
-          "confirmPassword: string"
+          "confirmPassword: string",
+          "device: string"
         ]
       },
       "produces": [
@@ -1840,11 +1856,11 @@
             "AccountRegistered(accountId: a-1, email: ada@company.com)",
             "PasswordResetRequested(accountId: a-1, email: ada@company.com)"
           ],
-          "when": "ResetPassword(accountId: a-1, newPassword: secret123, confirmPassword: secret123)",
+          "when": "ResetPassword(accountId: a-1, newPassword: secret123, confirmPassword: secret123, device: Chrome on macOS)",
           "then": [
             "PasswordReset(accountId: a-1)",
             "EmailVerified(accountId: a-1)",
-            "SignedIn(accountId: a-1, method: reset)"
+            "SignedIn(accountId: a-1, method: reset, keepSignedIn: false, sessionId: tok-1, device: Chrome on macOS)"
           ]
         },
         {
@@ -1963,7 +1979,7 @@
         "handles": [
           {
             "event": "MemberInvited",
-            "does": "add the pending invite with email, role, inviter and workspace, status pending"
+            "does": "add the pending invite with email, role and workspace, status pending; workspaceName comes from the workspace record and invitedByName from the inviter's account (both state stored)"
           },
           {
             "event": "InviteExpired",
@@ -2043,7 +2059,7 @@
       "feature": "f-accounts",
       "screen": "invite",
       "actor": "Invitee",
-      "story": "An invited person sets their name and password to join the team, and is signed in with the role they were invited for.",
+      "story": "An invited person sets their name and password to join the team, and is signed in with the role they were invited for. The browser reports the device (for example \"Chrome on macOS\"), shown later under active sessions.",
       "uiElement": "Accept button",
       "command": {
         "name": "AcceptInvite",
@@ -2051,7 +2067,8 @@
           "membershipId: uuid",
           "accountId: uuid",
           "fullName: string",
-          "password: string"
+          "password: string",
+          "device: string"
         ]
       },
       "produces": [
@@ -2064,8 +2081,7 @@
             "email: string",
             "fullName: string",
             "role: enum(Admin|Editor|Commenter|Viewer)",
-            "acceptedAt: utc_datetime",
-            "name: string"
+            "acceptedAt: utc_datetime"
           ]
         },
         {
@@ -2090,10 +2106,10 @@
           "given": [
             "MemberInvited(membershipId: m-1, email: nia@acme.dev, role: Editor)"
           ],
-          "when": "AcceptInvite(membershipId: m-1, accountId: u-2, fullName: Nia Obi, password: secret123)",
+          "when": "AcceptInvite(membershipId: m-1, accountId: u-2, fullName: Nia Obi, password: secret123, device: Chrome on macOS)",
           "then": [
-            "InviteAccepted(accountId: u-2, membershipId: m-1, email: nia@acme.dev, role: Editor)",
-            "SignedIn(accountId: u-2, method: invite)"
+            "InviteAccepted(accountId: u-2, membershipId: m-1, email: nia@acme.dev, fullName: Nia Obi, role: Editor)",
+            "SignedIn(accountId: u-2, method: invite, keepSignedIn: false, sessionId: tok-1, device: Chrome on macOS)"
           ]
         },
         {
@@ -2242,7 +2258,7 @@
       "feature": "f-accounts",
       "screen": "welcome",
       "actor": "Owner",
-      "story": "The new owner names their workspace and says what they do. The name gives the workspace its web address (with -2, -3 if it's taken); what they do goes on their profile so teammates know their role.",
+      "story": "The new owner names their workspace and says what they do. The name gives the workspace its web address (with -2, -3 if it's taken); what they do goes on their profile so teammates know their role. The browser supplies the time zone; new workspaces start on the first stack in the list.",
       "uiElement": "Welcome form",
       "command": {
         "name": "SetUpWorkspace",
@@ -2250,7 +2266,8 @@
           "workspaceId: uuid",
           "name: string",
           "savedBy: uuid",
-          "title: enum(Product|Engineering|Design|Something else)"
+          "title: enum(Product|Engineering|Design|Something else)",
+          "timeZone: string"
         ]
       },
       "produces": [
@@ -2286,10 +2303,10 @@
           "given": [
             "WorkspaceCreated(workspaceId: w-1)"
           ],
-          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme Studio, savedBy: u-1, title: Product)",
+          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme Studio, savedBy: u-1, title: Product, timeZone: Europe/London)",
           "then": [
-            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Studio, slug: acme-studio, savedBy: u-1)",
-            "ProfileSaved(accountId: u-1, title: Product)"
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Studio, slug: acme-studio, defaultStack: Elixir: Phoenix LiveView + Ash + AshCommanded, savedBy: u-1)",
+            "ProfileSaved(accountId: u-1, title: Product, timeZone: Europe/London)"
           ]
         },
         {
@@ -2298,7 +2315,7 @@
           "given": [
             "WorkspaceCreated(workspaceId: w-1)"
           ],
-          "when": "SetUpWorkspace(workspaceId: w-1, name: '   ', savedBy: u-1, title: Product)",
+          "when": "SetUpWorkspace(workspaceId: w-1, name: '   ', savedBy: u-1, title: Product, timeZone: Europe/London)",
           "then": [
             "error: Give your workspace a name."
           ]
@@ -2309,10 +2326,10 @@
           "given": [
             "WorkspaceCreated(workspaceId: w-1)"
           ],
-          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme & Co!, savedBy: u-1, title: Design)",
+          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme & Co!, savedBy: u-1, title: Design, timeZone: Europe/London)",
           "then": [
-            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme & Co!, slug: acme-co, savedBy: u-1)",
-            "ProfileSaved(accountId: u-1, title: Design)"
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme & Co!, slug: acme-co, defaultStack: Elixir: Phoenix LiveView + Ash + AshCommanded, savedBy: u-1)",
+            "ProfileSaved(accountId: u-1, title: Design, timeZone: Europe/London)"
           ]
         },
         {
@@ -2321,10 +2338,10 @@
           "given": [
             "WorkspaceCreated(workspaceId: w-1)"
           ],
-          "when": "SetUpWorkspace(workspaceId: w-1, name: '!!!', savedBy: u-1, title: Something else)",
+          "when": "SetUpWorkspace(workspaceId: w-1, name: '!!!', savedBy: u-1, title: Something else, timeZone: Europe/London)",
           "then": [
-            "WorkspaceDetailsSaved(workspaceId: w-1, name: !!!, slug: workspace, savedBy: u-1)",
-            "ProfileSaved(accountId: u-1, title: Something else)"
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: !!!, slug: workspace, defaultStack: Elixir: Phoenix LiveView + Ash + AshCommanded, savedBy: u-1)",
+            "ProfileSaved(accountId: u-1, title: Something else, timeZone: Europe/London)"
           ]
         },
         {
@@ -2333,10 +2350,10 @@
           "given": [
             "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Studio, slug: acme-studio, savedBy: u-1)"
           ],
-          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme Labs, savedBy: u-1, title: Engineering)",
+          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme Labs, savedBy: u-1, title: Engineering, timeZone: Europe/London)",
           "then": [
-            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Labs, slug: acme-labs, savedBy: u-1)",
-            "ProfileSaved(accountId: u-1, title: Engineering)"
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Labs, slug: acme-labs, defaultStack: Elixir: Phoenix LiveView + Ash + AshCommanded, savedBy: u-1)",
+            "ProfileSaved(accountId: u-1, title: Engineering, timeZone: Europe/London)"
           ]
         },
         {
@@ -2346,10 +2363,10 @@
             "WorkspaceCreated(workspaceId: w-9, name: Acme Studio, slug: acme-studio)",
             "WorkspaceCreated(workspaceId: w-1)"
           ],
-          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme Studio, savedBy: u-1, title: Product)",
+          "when": "SetUpWorkspace(workspaceId: w-1, name: Acme Studio, savedBy: u-1, title: Product, timeZone: Europe/London)",
           "then": [
-            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Studio, slug: acme-studio-2, savedBy: u-1)",
-            "ProfileSaved(accountId: u-1, title: Product)"
+            "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme Studio, slug: acme-studio-2, defaultStack: Elixir: Phoenix LiveView + Ash + AshCommanded, savedBy: u-1)",
+            "ProfileSaved(accountId: u-1, title: Product, timeZone: Europe/London)"
           ]
         }
       ]
@@ -2481,7 +2498,7 @@
             "folderPath: string",
             "repoUrl: string",
             "branch: string",
-            "stack: string",
+            "stack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)",
             "persistenceMode: enum(event_sourced|state_stored|mixed)",
             "createdAt: utc_datetime",
             "createdBy: uuid",
@@ -2529,7 +2546,10 @@
             "projectId: uuid",
             "featureId: uuid",
             "produces: list",
-            "reads: list"
+            "reads: list",
+            "commandName: string",
+            "readModelName: string",
+            "projectionName: string"
           ]
         },
         {
@@ -2603,12 +2623,12 @@
           "projectId: uuid",
           "name: string",
           "description: string",
-          "stack: string",
+          "stack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)",
           "persistenceMode: enum(event_sourced|state_stored|mixed)",
           "sourceType: enum(new|local|github)",
           "isSample: boolean",
           "createdAt: utc_datetime",
-          "createdById: uuid",
+          "createdBy: uuid",
           "workspaceId: uuid",
           "sliceCount: integer",
           "doneCount: integer",
@@ -2750,7 +2770,7 @@
           "folderPath: string",
           "repoUrl: string",
           "branch: string",
-          "stack: string",
+          "stack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)",
           "persistenceMode: enum(event_sourced|state_stored|mixed)",
           "createdBy: uuid",
           "workspaceId: uuid"
@@ -2767,7 +2787,7 @@
             "folderPath: string",
             "repoUrl: string",
             "branch: string",
-            "stack: string",
+            "stack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)",
             "persistenceMode: enum(event_sourced|state_stored|mixed)",
             "createdAt: utc_datetime",
             "createdBy: uuid",
@@ -3425,7 +3445,7 @@
         "fields": [
           "projectId: uuid",
           "prototypeId: uuid",
-          "stack: string"
+          "stack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)"
         ]
       },
       "produces": [
@@ -3549,7 +3569,10 @@
             "projectId: uuid",
             "featureId: uuid",
             "produces: list",
-            "reads: list"
+            "reads: list",
+            "commandName: string",
+            "readModelName: string",
+            "projectionName: string"
           ]
         }
       ],
@@ -3686,7 +3709,7 @@
             "proposalId: uuid",
             "from: enum(model|prototype)",
             "features: list",
-            "proposedBy: uuid",
+            "requestedBy: uuid",
             "proposedAt: utc_datetime"
           ]
         }
@@ -3796,7 +3819,7 @@
             "proposalId: uuid",
             "from: enum(model|prototype)",
             "features: list",
-            "proposedBy: uuid",
+            "requestedBy: uuid",
             "proposedAt: utc_datetime"
           ]
         }
@@ -4848,7 +4871,10 @@
             "projectId: uuid",
             "featureId: uuid",
             "produces: list",
-            "reads: list"
+            "reads: list",
+            "commandName: string",
+            "readModelName: string",
+            "projectionName: string"
           ]
         },
         {
@@ -5002,7 +5028,10 @@
             "projectId: uuid",
             "featureId: uuid",
             "produces: list",
-            "reads: list"
+            "reads: list",
+            "commandName: string",
+            "readModelName: string",
+            "projectionName: string"
           ]
         },
         {
@@ -5015,12 +5044,13 @@
             "pattern: enum(state_change|state_view|automation)",
             "editedAt: utc_datetime",
             "projectId: uuid",
-            "command: string",
-            "readModel: string",
             "editedBy: uuid",
             "screenId: string",
             "produces: list",
-            "reads: list"
+            "reads: list",
+            "commandName: string",
+            "readModelName: string",
+            "projectionName: string"
           ]
         },
         {
@@ -5286,7 +5316,10 @@
             "projectId: uuid",
             "featureId: uuid",
             "produces: list",
-            "reads: list"
+            "reads: list",
+            "commandName: string",
+            "readModelName: string",
+            "projectionName: string"
           ]
         },
         {
@@ -5299,12 +5332,13 @@
             "pattern: enum(state_change|state_view|automation)",
             "editedAt: utc_datetime",
             "projectId: uuid",
-            "command: string",
-            "readModel: string",
             "editedBy: uuid",
             "screenId: string",
             "produces: list",
-            "reads: list"
+            "reads: list",
+            "commandName: string",
+            "readModelName: string",
+            "projectionName: string"
           ]
         },
         {
@@ -5581,7 +5615,10 @@
             "projectId: uuid",
             "featureId: uuid",
             "produces: list",
-            "reads: list"
+            "reads: list",
+            "commandName: string",
+            "readModelName: string",
+            "projectionName: string"
           ]
         }
       ],
@@ -5859,7 +5896,10 @@
             "projectId: uuid",
             "featureId: uuid",
             "produces: list",
-            "reads: list"
+            "reads: list",
+            "commandName: string",
+            "readModelName: string",
+            "projectionName: string"
           ]
         },
         {
@@ -5872,12 +5912,13 @@
             "pattern: enum(state_change|state_view|automation)",
             "editedAt: utc_datetime",
             "projectId: uuid",
-            "command: string",
-            "readModel: string",
             "editedBy: uuid",
             "screenId: string",
             "produces: list",
-            "reads: list"
+            "reads: list",
+            "commandName: string",
+            "readModelName: string",
+            "projectionName: string"
           ]
         },
         {
@@ -6056,7 +6097,10 @@
             "projectId: uuid",
             "featureId: uuid",
             "produces: list",
-            "reads: list"
+            "reads: list",
+            "commandName: string",
+            "readModelName: string",
+            "projectionName: string"
           ]
         },
         {
@@ -6069,12 +6113,13 @@
             "pattern: enum(state_change|state_view|automation)",
             "editedAt: utc_datetime",
             "projectId: uuid",
-            "command: string",
-            "readModel: string",
             "editedBy: uuid",
             "screenId: string",
             "produces: list",
-            "reads: list"
+            "reads: list",
+            "commandName: string",
+            "readModelName: string",
+            "projectionName: string"
           ]
         },
         {
@@ -6364,7 +6409,10 @@
             "projectId: uuid",
             "featureId: uuid",
             "produces: list",
-            "reads: list"
+            "reads: list",
+            "commandName: string",
+            "readModelName: string",
+            "projectionName: string"
           ]
         },
         {
@@ -7552,6 +7600,13 @@
             "accountId: uuid",
             "changedAt: utc_datetime"
           ]
+        },
+        {
+          "name": "PasswordReset",
+          "fields": [
+            "accountId: uuid",
+            "resetAt: utc_datetime"
+          ]
         }
       ],
       "projection": {
@@ -7587,7 +7642,11 @@
           },
           {
             "event": "PasswordChanged",
-            "does": "record when the password was last changed"
+            "does": "passwordChangedAt = changedAt"
+          },
+          {
+            "event": "PasswordReset",
+            "does": "passwordChangedAt = resetAt"
           }
         ]
       },
@@ -7816,6 +7875,39 @@
           "when": "EnableTwoFactor(accountId: a-1, code: 123456)",
           "then": [
             "error: Two-step verification is already on."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Code is wrong",
+          "given": [
+            "a-1 scanned the secret into an authenticator app"
+          ],
+          "when": "EnableTwoFactor(accountId: a-1, code: 999999)",
+          "then": [
+            "error: That code isn't right. Check your authenticator app and try again."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Code has expired",
+          "given": [
+            "a-1 scanned the secret into an authenticator app"
+          ],
+          "when": "EnableTwoFactor(accountId: a-1, code: a code from more than 30 seconds ago)",
+          "then": [
+            "error: That code has expired. Enter the code your app shows now."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Too many wrong codes",
+          "given": [
+            "5 wrong codes for a-1 in the last 15 minutes"
+          ],
+          "when": "EnableTwoFactor(accountId: a-1, code: 123456)",
+          "then": [
+            "error: Too many tries. Wait 15 minutes and start again."
           ]
         }
       ]
@@ -8451,7 +8543,7 @@
             "workspaceId: uuid",
             "domains: array(string)",
             "domainJoin: boolean",
-            "joinByDomainEnabled: boolean"
+            "savedBy: uuid"
           ]
         },
         {
@@ -8707,7 +8799,7 @@
           "workspaceId: uuid",
           "domains: array(string)",
           "domainJoin: boolean",
-          "actorAccountId: uuid"
+          "savedBy: uuid"
         ]
       },
       "produces": [
@@ -8717,7 +8809,7 @@
             "workspaceId: uuid",
             "domains: array(string)",
             "domainJoin: boolean",
-            "joinByDomainEnabled: boolean"
+            "savedBy: uuid"
           ]
         }
       ],
@@ -8731,7 +8823,7 @@
           "given": [
             "WorkspaceCreated(workspaceId: w-1)"
           ],
-          "when": "SaveDomains(workspaceId: w-1, domains: [acme.dev], domainJoin: true, actorAccountId: admin)",
+          "when": "SaveDomains(workspaceId: w-1, domains: [acme.dev], domainJoin: true, savedBy: owner-1)",
           "then": [
             "DomainsSaved(workspaceId: w-1, domains: [acme.dev], domainJoin: true)"
           ]
@@ -8742,7 +8834,7 @@
           "given": [
             "WorkspaceCreated(workspaceId: w-1)"
           ],
-          "when": "SaveDomains(workspaceId: w-1, domains: [acme], domainJoin: true, actorAccountId: admin)",
+          "when": "SaveDomains(workspaceId: w-1, domains: [acme], domainJoin: true, savedBy: owner-1)",
           "then": [
             "error: Check the domains: use the form company.com."
           ]
@@ -8753,9 +8845,9 @@
           "given": [
             "WorkspaceCreated(workspaceId: w-1)"
           ],
-          "when": "SaveDomains(workspaceId: w-1, domains: [acme.dev], domainJoin: true, actorAccountId: commenter)",
+          "when": "SaveDomains(workspaceId: w-1, domains: [acme.dev], domainJoin: true, savedBy: commenter-1)",
           "then": [
-            "error: only owners and admins can change domains"
+            "error: Only owners and admins can change domains."
           ]
         },
         {
@@ -8764,7 +8856,7 @@
           "given": [
             "DomainsSaved(workspaceId: w-1, domains: [acme.dev], domainJoin: true)"
           ],
-          "when": "SaveDomains(workspaceId: w-1, domains: [], domainJoin: false, actorAccountId: admin)",
+          "when": "SaveDomains(workspaceId: w-1, domains: [], domainJoin: false, savedBy: owner-1)",
           "then": [
             "DomainsSaved(workspaceId: w-1, domains: [], domainJoin: false)"
           ]
@@ -8775,9 +8867,20 @@
           "given": [
             "WorkspaceCreated(workspaceId: w-1)"
           ],
-          "when": "SaveDomains(workspaceId: w-1, domains: [@Acme.dev], domainJoin: true, actorAccountId: admin)",
+          "when": "SaveDomains(workspaceId: w-1, domains: [@Acme.dev], domainJoin: true, savedBy: owner-1)",
           "then": [
             "DomainsSaved(workspaceId: w-1, domains: [acme.dev], domainJoin: true)"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Domain used by another workspace",
+          "given": [
+            "DomainsSaved(workspaceId: w-2, domains: [acme.dev], domainJoin: true)"
+          ],
+          "when": "SaveDomains(workspaceId: w-1, domains: [acme.dev], domainJoin: true, savedBy: owner-1)",
+          "then": [
+            "error: acme.dev is already used by another workspace."
           ]
         }
       ]
@@ -8798,7 +8901,8 @@
         "fields": [
           "workspaceId: uuid",
           "newOwnerAccountId: uuid",
-          "actorAccountId: uuid"
+          "actorAccountId: uuid",
+          "changedBy: uuid"
         ]
       },
       "produces": [
@@ -9029,8 +9133,7 @@
             "email: string",
             "fullName: string",
             "role: enum(Admin|Editor|Commenter|Viewer)",
-            "acceptedAt: utc_datetime",
-            "name: string"
+            "acceptedAt: utc_datetime"
           ]
         },
         {
@@ -9099,7 +9202,7 @@
           },
           {
             "event": "InviteAccepted",
-            "does": "remove the pending invite and add a member row, then recount paid seats"
+            "does": "remove the pending invite and add a member row; seatsUsed = members whose role isn't Viewer"
           },
           {
             "event": "MemberRoleChanged",
@@ -9123,7 +9226,7 @@
         "name": "MemberList",
         "fields": [
           "workspaceId: uuid",
-          "plan: string",
+          "plan: enum(free|team|business|enterprise)",
           "seatLimit: integer",
           "seatsUsed: integer",
           "members: list of {membershipId, name, email, role, lastActive}",
@@ -9836,7 +9939,7 @@
             "workspaceId: uuid",
             "domains: array(string)",
             "domainJoin: boolean",
-            "joinByDomainEnabled: boolean"
+            "savedBy: uuid"
           ]
         },
         {
@@ -9882,7 +9985,7 @@
           ],
           "when": "AddMemberByDomain(workspaceId: w-1, accountId: u-5, email: kim@acme.dev)",
           "then": [
-            "MemberJoinedByDomain(accountId: u-5, role: Commenter)"
+            "MemberJoinedByDomain(accountId: u-5, email: kim@acme.dev, domain: acme.dev, role: Commenter)"
           ]
         },
         {
@@ -10013,15 +10116,15 @@
         "handles": [
           {
             "event": "PlanChanged",
-            "does": "set the current plan, seat limit, price per seat and renewal date"
+            "does": "planName = the plan's display name (Free, Team, Business, Enterprise); seatLimit, pricePerSeat and renewsOn from the event"
           },
           {
             "event": "PaymentMethodUpdated",
-            "does": "replace the card brand, last 4 digits, expiry and receipt email"
+            "does": "cardBrand = cardBrand, cardLast4 = last4, cardExpiry = expiry, receiptEmail = receiptEmail"
           },
           {
             "event": "MemberInvited",
-            "does": "count one more paid seat when the invited role is not Viewer"
+            "does": "seatsUsed: count one more seat when the invited role is not Viewer (same rule as Members)"
           },
           {
             "event": "MemberRemoved",
@@ -10339,7 +10442,7 @@
         "handles": [
           {
             "event": "IntegrationConnected",
-            "does": "mark the integration as connected and store the organisation name for GitHub"
+            "does": "githubConnected / slackConnected / miroConnected = true for that integration; githubOrganisation = organisation when it is GitHub"
           },
           {
             "event": "IntegrationDisconnected",
@@ -10347,7 +10450,7 @@
           },
           {
             "event": "SsoConfigured",
-            "does": "store the SSO settings and set ssoEnabled to true"
+            "does": "ssoEnabled = true; ssoEntityId = entityId, ssoSignInUrl = signInUrl, ssoCertificate = certificate"
           },
           {
             "event": "PlanChanged",
@@ -10808,7 +10911,8 @@
           "title: string",
           "given: list",
           "when: string",
-          "then: list"
+          "then: list",
+          "addedBy: uuid"
         ]
       },
       "produces": [
@@ -10907,7 +11011,11 @@
           "name: string",
           "story: string",
           "uiElement: string",
-          "pattern: enum(state_change|state_view|automation)"
+          "pattern: enum(state_change|state_view|automation)",
+          "commandName: string",
+          "readModelName: string",
+          "projectionName: string",
+          "editedBy: uuid"
         ]
       },
       "produces": [
@@ -10921,12 +11029,13 @@
             "pattern: enum(state_change|state_view|automation)",
             "editedAt: utc_datetime",
             "projectId: uuid",
-            "command: string",
-            "readModel: string",
             "editedBy: uuid",
             "screenId: string",
             "produces: list",
-            "reads: list"
+            "reads: list",
+            "commandName: string",
+            "readModelName: string",
+            "projectionName: string"
           ]
         }
       ],
@@ -10940,7 +11049,7 @@
           "given": [
             "SliceAdded(sliceId: s-1, name: Create account)"
           ],
-          "when": "EditSlice(sliceId: s-1, name: Register account)",
+          "when": "EditSlice(sliceId: s-1, name: Register account, editedBy: u-1)",
           "then": [
             "SliceEdited(sliceId: s-1, name: Register account)"
           ]
@@ -10951,7 +11060,7 @@
           "given": [
             "SliceAdded(sliceId: s-1)"
           ],
-          "when": "EditSlice(sliceId: s-1, name: )",
+          "when": "EditSlice(sliceId: s-1, name: , editedBy: u-1)",
           "then": [
             "error: NameRequired"
           ]
@@ -10960,7 +11069,7 @@
           "kind": "error",
           "title": "Slice does not exist",
           "given": [],
-          "when": "EditSlice(sliceId: unknown, name: X)",
+          "when": "EditSlice(sliceId: unknown, name: X, editedBy: u-1)",
           "then": [
             "error: SliceNotFound"
           ]
@@ -10971,7 +11080,7 @@
           "given": [
             "SliceAdded(sliceId: s-1)"
           ],
-          "when": "EditSlice(sliceId: s-1, name: X) as a viewer",
+          "when": "EditSlice(sliceId: s-1, name: X, editedBy: u-1) as a viewer",
           "then": [
             "error: NotAllowed"
           ]
@@ -10982,7 +11091,7 @@
           "given": [
             "SliceAdded(sliceId: s-1, name: Create account)"
           ],
-          "when": "EditSlice(sliceId: s-1, name: Create account)",
+          "when": "EditSlice(sliceId: s-1, name: Create account, editedBy: u-1)",
           "then": [
             "SliceEdited(sliceId: s-1, name: Create account)"
           ]
@@ -11630,7 +11739,8 @@
         "name": "RequestReview",
         "fields": [
           "sliceId: uuid",
-          "reviewerIds: list"
+          "reviewerIds: list",
+          "requestedBy: uuid"
         ]
       },
       "produces": [
@@ -11869,7 +11979,8 @@
       "command": {
         "name": "CancelReview",
         "fields": [
-          "sliceId: uuid"
+          "sliceId: uuid",
+          "cancelledBy: uuid"
         ]
       },
       "produces": [
@@ -11948,7 +12059,8 @@
       "command": {
         "name": "ResetReview",
         "fields": [
-          "sliceId: uuid"
+          "sliceId: uuid",
+          "resetBy: uuid"
         ]
       },
       "produces": [
@@ -12293,12 +12405,13 @@
             "pattern: enum(state_change|state_view|automation)",
             "editedAt: utc_datetime",
             "projectId: uuid",
-            "command: string",
-            "readModel: string",
             "editedBy: uuid",
             "screenId: string",
             "produces: list",
-            "reads: list"
+            "reads: list",
+            "commandName: string",
+            "readModelName: string",
+            "projectionName: string"
           ]
         }
       ],
@@ -12311,11 +12424,11 @@
           },
           {
             "event": "CommentPosted",
-            "does": "append the comment to the thread, keep any suggested scenario attached, and add an activity entry"
+            "does": "append to comments (commentId, authorId, text, postedAt), keep any suggested scenario attached, and add an activity entry"
           },
           {
             "event": "ReplyPosted",
-            "does": "append the reply to the thread and add an activity entry"
+            "does": "append to comments (commentId, authorId, text, postedAt) and add an activity entry"
           },
           {
             "event": "ThreadResolved",
@@ -12434,7 +12547,8 @@
           "authorId: uuid",
           "text: string",
           "suggestedKind: enum(success|error|empty|edge)",
-          "suggestedTitle: string"
+          "suggestedTitle: string",
+          "startedBy: uuid"
         ]
       },
       "produces": [
@@ -12533,7 +12647,8 @@
         "fields": [
           "threadId: uuid",
           "authorId: uuid",
-          "text: string"
+          "text: string",
+          "reopenedBy: uuid"
         ]
       },
       "produces": [
@@ -13210,7 +13325,8 @@
         "fields": [
           "projectId: uuid",
           "email: string",
-          "role: enum(edit|comment|view)"
+          "role: enum(edit|comment|view)",
+          "invitedBy: uuid"
         ]
       },
       "produces": [
@@ -13520,8 +13636,8 @@
         "name": "PendingVerificationProjection",
         "label": "Pending verification projection",
         "fields": [
-          "on AccountRegistered: add a pending verification entry for the account with its email and the time it was registered",
-          "on VerificationCodeResent: update the entry's last code sent time so the resend wait can be shown"
+          "on AccountRegistered: add a pending entry with the email; codeSentAt = registeredAt, resendAvailableAt = registeredAt + 30 seconds",
+          "on VerificationCodeResent: codeSentAt = resentAt, resendAvailableAt = resentAt + 30 seconds"
         ],
         "column": 1,
         "step": 2,
@@ -13531,11 +13647,11 @@
         "handles": [
           {
             "event": "AccountRegistered",
-            "does": "add a pending verification entry for the account with its email and the time it was registered"
+            "does": "add a pending entry with the email; codeSentAt = registeredAt, resendAvailableAt = registeredAt + 30 seconds"
           },
           {
             "event": "VerificationCodeResent",
-            "does": "update the entry's last code sent time so the resend wait can be shown"
+            "does": "codeSentAt = resentAt, resendAvailableAt = resentAt + 30 seconds"
           }
         ],
         "updates": "PendingVerification"
@@ -13766,7 +13882,8 @@
           "accountId: uuid",
           "email: string",
           "password: string",
-          "keepSignedIn: boolean"
+          "keepSignedIn: boolean",
+          "device: string"
         ],
         "column": 5,
         "step": 6,
@@ -13814,7 +13931,8 @@
         "label": "Sign in with provider",
         "fields": [
           "accountId: uuid",
-          "provider: enum(github|google)"
+          "provider: enum(github|google)",
+          "device: string"
         ],
         "column": 6,
         "step": 7,
@@ -13884,7 +14002,8 @@
         "fields": [
           "email: string",
           "accountId: uuid",
-          "workspaceId: uuid"
+          "workspaceId: uuid",
+          "device: string"
         ],
         "column": 7,
         "step": 8,
@@ -14062,7 +14181,8 @@
         "fields": [
           "accountId: uuid",
           "newPassword: string",
-          "confirmPassword: string"
+          "confirmPassword: string",
+          "device: string"
         ],
         "column": 10,
         "step": 11,
@@ -14109,7 +14229,7 @@
         "name": "InviteDetailsProjection",
         "label": "Invite details projection",
         "fields": [
-          "on MemberInvited: add the pending invite with email, role, inviter and workspace, status pending",
+          "on MemberInvited: add the pending invite with email, role and workspace, status pending; workspaceName comes from the workspace record and invitedByName from the inviter's account (both state stored)",
           "on InviteExpired: set the invite status to expired",
           "on InviteRevoked: set the invite status to revoked"
         ],
@@ -14121,7 +14241,7 @@
         "handles": [
           {
             "event": "MemberInvited",
-            "does": "add the pending invite with email, role, inviter and workspace, status pending"
+            "does": "add the pending invite with email, role and workspace, status pending; workspaceName comes from the workspace record and invitedByName from the inviter's account (both state stored)"
           },
           {
             "event": "InviteExpired",
@@ -14146,8 +14266,7 @@
           "email: string",
           "fullName: string",
           "role: enum(Admin|Editor|Commenter|Viewer)",
-          "acceptedAt: utc_datetime",
-          "name: string"
+          "acceptedAt: utc_datetime"
         ],
         "column": 12,
         "step": 13,
@@ -14198,7 +14317,8 @@
           "membershipId: uuid",
           "accountId: uuid",
           "fullName: string",
-          "password: string"
+          "password: string",
+          "device: string"
         ],
         "column": 12,
         "step": 13,
@@ -14310,7 +14430,8 @@
           "workspaceId: uuid",
           "name: string",
           "savedBy: uuid",
-          "title: enum(Product|Engineering|Design|Something else)"
+          "title: enum(Product|Engineering|Design|Something else)",
+          "timeZone: string"
         ],
         "column": 14,
         "step": 15,
@@ -14391,12 +14512,12 @@
           "projectId: uuid",
           "name: string",
           "description: string",
-          "stack: string",
+          "stack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)",
           "persistenceMode: enum(event_sourced|state_stored|mixed)",
           "sourceType: enum(new|local|github)",
           "isSample: boolean",
           "createdAt: utc_datetime",
-          "createdById: uuid",
+          "createdBy: uuid",
           "workspaceId: uuid",
           "sliceCount: integer",
           "doneCount: integer",
@@ -14479,7 +14600,7 @@
           "folderPath: string",
           "repoUrl: string",
           "branch: string",
-          "stack: string",
+          "stack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)",
           "persistenceMode: enum(event_sourced|state_stored|mixed)",
           "createdAt: utc_datetime",
           "createdBy: uuid",
@@ -14518,7 +14639,7 @@
           "folderPath: string",
           "repoUrl: string",
           "branch: string",
-          "stack: string",
+          "stack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)",
           "persistenceMode: enum(event_sourced|state_stored|mixed)",
           "createdBy: uuid",
           "workspaceId: uuid"
@@ -14863,7 +14984,7 @@
         "fields": [
           "projectId: uuid",
           "prototypeId: uuid",
-          "stack: string"
+          "stack: enum(Elixir: Phoenix LiveView + Ash + AshCommanded|Elixir: Phoenix LiveView + Ash|Elixir: Phoenix LiveView + Ash + Commanded|Elixir: Phoenix LiveView + Ash + Commanded + Hologram|Elixir: Phoenix LiveView + Ash + Commanded + Elm|Elixir: Phoenix LiveView + Commanded|Other)"
         ],
         "column": 24,
         "step": 25,
@@ -14885,7 +15006,10 @@
           "projectId: uuid",
           "featureId: uuid",
           "produces: list",
-          "reads: list"
+          "reads: list",
+          "commandName: string",
+          "readModelName: string",
+          "projectionName: string"
         ],
         "column": 25,
         "step": 26,
@@ -14982,7 +15106,7 @@
           "proposalId: uuid",
           "from: enum(model|prototype)",
           "features: list",
-          "proposedBy: uuid",
+          "requestedBy: uuid",
           "proposedAt: utc_datetime"
         ],
         "column": 26,
@@ -16029,7 +16153,10 @@
           "projectId: uuid",
           "featureId: uuid",
           "produces: list",
-          "reads: list"
+          "reads: list",
+          "commandName: string",
+          "readModelName: string",
+          "projectionName: string"
         ],
         "column": 42,
         "step": 43,
@@ -17044,7 +17171,8 @@
           "on TwoFactorDisabled: set two-step to off and clear recovery codes",
           "on SignInConnected: mark the provider as connected",
           "on SignInDisconnected: mark the provider as not connected",
-          "on PasswordChanged: record when the password was last changed"
+          "on PasswordChanged: passwordChangedAt = changedAt",
+          "on PasswordReset: passwordChangedAt = resetAt"
         ],
         "column": 57,
         "step": 58,
@@ -17082,7 +17210,11 @@
           },
           {
             "event": "PasswordChanged",
-            "does": "record when the password was last changed"
+            "does": "passwordChangedAt = changedAt"
+          },
+          {
+            "event": "PasswordReset",
+            "does": "passwordChangedAt = resetAt"
           }
         ],
         "updates": "AccountSecurity"
@@ -17639,7 +17771,7 @@
           "workspaceId: uuid",
           "domains: array(string)",
           "domainJoin: boolean",
-          "joinByDomainEnabled: boolean"
+          "savedBy: uuid"
         ],
         "column": 69,
         "step": 70,
@@ -17670,7 +17802,7 @@
           "workspaceId: uuid",
           "domains: array(string)",
           "domainJoin: boolean",
-          "actorAccountId: uuid"
+          "savedBy: uuid"
         ],
         "column": 69,
         "step": 70,
@@ -17737,7 +17869,8 @@
         "fields": [
           "workspaceId: uuid",
           "newOwnerAccountId: uuid",
-          "actorAccountId: uuid"
+          "actorAccountId: uuid",
+          "changedBy: uuid"
         ],
         "column": 70,
         "step": 71,
@@ -17810,7 +17943,7 @@
         "label": "Member list",
         "fields": [
           "workspaceId: uuid",
-          "plan: string",
+          "plan: enum(free|team|business|enterprise)",
           "seatLimit: integer",
           "seatsUsed: integer",
           "members: list of {membershipId, name, email, role, lastActive}",
@@ -17832,7 +17965,7 @@
           "on InviteResent: update the pending invite's invited time",
           "on InviteRevoked: remove the pending invite row",
           "on InviteExpired: remove the pending invite row",
-          "on InviteAccepted: remove the pending invite and add a member row, then recount paid seats",
+          "on InviteAccepted: remove the pending invite and add a member row; seatsUsed = members whose role isn't Viewer",
           "on MemberRoleChanged: update the member's role and recount paid seats (viewers take no seat)",
           "on MemberRemoved: remove the member row and recount paid seats",
           "on MemberJoinedByDomain: add a member row with the Commenter role and recount paid seats",
@@ -17862,7 +17995,7 @@
           },
           {
             "event": "InviteAccepted",
-            "does": "remove the pending invite and add a member row, then recount paid seats"
+            "does": "remove the pending invite and add a member row; seatsUsed = members whose role isn't Viewer"
           },
           {
             "event": "MemberRoleChanged",
@@ -18353,9 +18486,9 @@
         "name": "BillingOverviewProjection",
         "label": "Billing overview projection",
         "fields": [
-          "on PlanChanged: set the current plan, seat limit, price per seat and renewal date",
-          "on PaymentMethodUpdated: replace the card brand, last 4 digits, expiry and receipt email",
-          "on MemberInvited: count one more paid seat when the invited role is not Viewer",
+          "on PlanChanged: planName = the plan's display name (Free, Team, Business, Enterprise); seatLimit, pricePerSeat and renewsOn from the event",
+          "on PaymentMethodUpdated: cardBrand = cardBrand, cardLast4 = last4, cardExpiry = expiry, receiptEmail = receiptEmail",
+          "on MemberInvited: seatsUsed: count one more seat when the invited role is not Viewer (same rule as Members)",
           "on MemberRemoved: free a paid seat when the removed member was not a Viewer",
           "on ModelDerived: add one to model derivations used this month"
         ],
@@ -18367,15 +18500,15 @@
         "handles": [
           {
             "event": "PlanChanged",
-            "does": "set the current plan, seat limit, price per seat and renewal date"
+            "does": "planName = the plan's display name (Free, Team, Business, Enterprise); seatLimit, pricePerSeat and renewsOn from the event"
           },
           {
             "event": "PaymentMethodUpdated",
-            "does": "replace the card brand, last 4 digits, expiry and receipt email"
+            "does": "cardBrand = cardBrand, cardLast4 = last4, cardExpiry = expiry, receiptEmail = receiptEmail"
           },
           {
             "event": "MemberInvited",
-            "does": "count one more paid seat when the invited role is not Viewer"
+            "does": "seatsUsed: count one more seat when the invited role is not Viewer (same rule as Members)"
           },
           {
             "event": "MemberRemoved",
@@ -18529,9 +18662,9 @@
         "name": "IntegrationListProjection",
         "label": "Integration list projection",
         "fields": [
-          "on IntegrationConnected: mark the integration as connected and store the organisation name for GitHub",
+          "on IntegrationConnected: githubConnected / slackConnected / miroConnected = true for that integration; githubOrganisation = organisation when it is GitHub",
           "on IntegrationDisconnected: mark the integration as not connected and clear the organisation",
-          "on SsoConfigured: store the SSO settings and set ssoEnabled to true",
+          "on SsoConfigured: ssoEnabled = true; ssoEntityId = entityId, ssoSignInUrl = signInUrl, ssoCertificate = certificate",
           "on PlanChanged: store the plan and set ssoAvailable to true only for business or enterprise"
         ],
         "column": 83,
@@ -18542,7 +18675,7 @@
         "handles": [
           {
             "event": "IntegrationConnected",
-            "does": "mark the integration as connected and store the organisation name for GitHub"
+            "does": "githubConnected / slackConnected / miroConnected = true for that integration; githubOrganisation = organisation when it is GitHub"
           },
           {
             "event": "IntegrationDisconnected",
@@ -18550,7 +18683,7 @@
           },
           {
             "event": "SsoConfigured",
-            "does": "store the SSO settings and set ssoEnabled to true"
+            "does": "ssoEnabled = true; ssoEntityId = entityId, ssoSignInUrl = signInUrl, ssoCertificate = certificate"
           },
           {
             "event": "PlanChanged",
@@ -18800,7 +18933,8 @@
           "title: string",
           "given: list",
           "when: string",
-          "then: list"
+          "then: list",
+          "addedBy: uuid"
         ],
         "column": 88,
         "step": 89,
@@ -18821,12 +18955,13 @@
           "pattern: enum(state_change|state_view|automation)",
           "editedAt: utc_datetime",
           "projectId: uuid",
-          "command: string",
-          "readModel: string",
           "editedBy: uuid",
           "screenId: string",
           "produces: list",
-          "reads: list"
+          "reads: list",
+          "commandName: string",
+          "readModelName: string",
+          "projectionName: string"
         ],
         "column": 89,
         "step": 90,
@@ -18858,7 +18993,11 @@
           "name: string",
           "story: string",
           "uiElement: string",
-          "pattern: enum(state_change|state_view|automation)"
+          "pattern: enum(state_change|state_view|automation)",
+          "commandName: string",
+          "readModelName: string",
+          "projectionName: string",
+          "editedBy: uuid"
         ],
         "column": 89,
         "step": 90,
@@ -19251,7 +19390,8 @@
         "label": "Request review",
         "fields": [
           "sliceId: uuid",
-          "reviewerIds: list"
+          "reviewerIds: list",
+          "requestedBy: uuid"
         ],
         "column": 97,
         "step": 98,
@@ -19388,7 +19528,8 @@
         "name": "CancelReview",
         "label": "Cancel review",
         "fields": [
-          "sliceId: uuid"
+          "sliceId: uuid",
+          "cancelledBy: uuid"
         ],
         "column": 100,
         "step": 101,
@@ -19433,7 +19574,8 @@
         "name": "ResetReview",
         "label": "Reset review",
         "fields": [
-          "sliceId: uuid"
+          "sliceId: uuid",
+          "resetBy: uuid"
         ],
         "column": 101,
         "step": 102,
@@ -19567,8 +19709,8 @@
         "label": "Thread list projection",
         "fields": [
           "on ThreadStarted: add a new open thread for the slice and target",
-          "on CommentPosted: append the comment to the thread, keep any suggested scenario attached, and add an activity entry",
-          "on ReplyPosted: append the reply to the thread and add an activity entry",
+          "on CommentPosted: append to comments (commentId, authorId, text, postedAt), keep any suggested scenario attached, and add an activity entry",
+          "on ReplyPosted: append to comments (commentId, authorId, text, postedAt) and add an activity entry",
           "on ThreadResolved: mark the thread resolved, update the tab counts and add an activity entry",
           "on ThreadReopened: mark the thread open again, update the tab counts and add an activity entry",
           "on SuggestionDismissed: remove the suggested scenario from the comment",
@@ -19586,11 +19728,11 @@
           },
           {
             "event": "CommentPosted",
-            "does": "append the comment to the thread, keep any suggested scenario attached, and add an activity entry"
+            "does": "append to comments (commentId, authorId, text, postedAt), keep any suggested scenario attached, and add an activity entry"
           },
           {
             "event": "ReplyPosted",
-            "does": "append the reply to the thread and add an activity entry"
+            "does": "append to comments (commentId, authorId, text, postedAt) and add an activity entry"
           },
           {
             "event": "ThreadResolved",
@@ -19677,7 +19819,8 @@
           "authorId: uuid",
           "text: string",
           "suggestedKind: enum(success|error|empty|edge)",
-          "suggestedTitle: string"
+          "suggestedTitle: string",
+          "startedBy: uuid"
         ],
         "column": 104,
         "step": 105,
@@ -19743,7 +19886,8 @@
         "fields": [
           "threadId: uuid",
           "authorId: uuid",
-          "text: string"
+          "text: string",
+          "reopenedBy: uuid"
         ],
         "column": 105,
         "step": 106,
@@ -20153,7 +20297,8 @@
         "fields": [
           "projectId: uuid",
           "email: string",
-          "role: enum(edit|comment|view)"
+          "role: enum(edit|comment|view)",
+          "invitedBy: uuid"
         ],
         "column": 112,
         "step": 113,
@@ -21314,6 +21459,11 @@
       },
       {
         "from": "n-58-ev-PasswordChanged",
+        "to": "n-57-proj",
+        "step": 58
+      },
+      {
+        "from": "n-10-ev-PasswordReset",
         "to": "n-57-proj",
         "step": 58
       },
