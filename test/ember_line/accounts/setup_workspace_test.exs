@@ -19,13 +19,18 @@ defmodule EmberLine.Accounts.SetupWorkspaceTest do
     %{owner: owner, workspace: workspace}
   end
 
-  defp set_up(workspace, actor, name, title),
-    do: Workspace.set_up_workspace(workspace, name, title, actor: actor)
+  @first_stack "Elixir: Phoenix LiveView + Ash + AshCommanded"
+
+  defp set_up(workspace, actor, name, title, time_zone \\ "Europe/London"),
+    do: Workspace.set_up_workspace(workspace, name, title, time_zone, actor: actor)
 
   defp reloaded(%Workspace{id: id}), do: Ash.get!(Workspace, id, authorize?: false)
   defp reloaded(%User{id: id}), do: Ash.get!(User, id, authorize?: false)
 
-  defp assert_saved(workspace, owner, name, slug, title) do
+  defp assert_saved(workspace, owner, name, slug, title, opts \\ []) do
+    stack = Keyword.get(opts, :stack, @first_stack)
+    time_zone = Keyword.get(opts, :time_zone, "Europe/London")
+
     details = List.last(events("WorkspaceDetailsSaved", workspace.id))
     assert details, "no WorkspaceDetailsSaved recorded"
 
@@ -39,7 +44,7 @@ defmodule EmberLine.Accounts.SetupWorkspaceTest do
              details.data
 
     assert {wid, saved_by} == {workspace.id, owner.id}
-    assert Map.has_key?(details.data, "defaultStack")
+    assert details.data["defaultStack"] == stack
     refute Map.has_key?(details.data, "title")
 
     profile = List.last(events("ProfileSaved", owner.id))
@@ -49,12 +54,14 @@ defmodule EmberLine.Accounts.SetupWorkspaceTest do
              "accountId" => owner.id,
              "fullName" => "Alex Rivera",
              "title" => title,
-             "timeZone" => nil,
+             "timeZone" => time_zone,
              "avatarColor" => owner.avatar_color
            }
 
     assert {reloaded(workspace).name, reloaded(workspace).slug} == {name, slug}
     assert reloaded(owner).title == title
+    assert reloaded(owner).time_zone == time_zone
+    assert reloaded(workspace).default_stack == stack
   end
 
   test "Name the workspace and pick a role", %{owner: owner, workspace: workspace} do
@@ -83,7 +90,7 @@ defmodule EmberLine.Accounts.SetupWorkspaceTest do
     assert_saved(workspace, owner, "!!!", "workspace", "Something else")
   end
 
-  test "Saving again overwrites the earlier details", %{owner: owner, workspace: workspace} do
+  test "Saving again updates the name and title", %{owner: owner, workspace: workspace} do
     assert {:ok, _} = set_up(workspace, owner, "Acme Studio", "Product")
     assert {:ok, _} = set_up(reloaded(workspace), owner, "Acme Labs", "Engineering")
 
@@ -96,6 +103,33 @@ defmodule EmberLine.Accounts.SetupWorkspaceTest do
 
     assert {:ok, _} = set_up(workspace, owner, "Acme Studio", "Product")
     assert_saved(workspace, owner, "Acme Studio", "acme-studio-2", "Product")
+  end
+
+  test "Unknown time zone falls back to UTC", %{owner: owner, workspace: workspace} do
+    assert {:ok, _} = set_up(workspace, owner, "Acme Studio", "Product", "Mars/Olympus")
+    assert_saved(workspace, owner, "Acme Studio", "acme-studio", "Product", time_zone: "UTC")
+  end
+
+  test "Missing time zone falls back to UTC", %{owner: owner, workspace: workspace} do
+    for missing <- ["", nil] do
+      assert {:ok, _} = set_up(reloaded(workspace), owner, "Acme Studio", "Product", missing)
+      assert_saved(workspace, owner, "Acme Studio", "acme-studio", "Product", time_zone: "UTC")
+    end
+  end
+
+  test "Saving again keeps a stack chosen in settings", %{owner: owner, workspace: workspace} do
+    chosen = "Elixir: Phoenix LiveView + Ash + Commanded"
+    assert {:ok, _} = set_up(workspace, owner, "Acme Studio", "Product")
+
+    {:ok, _} =
+      Workspace.save_workspace_details(
+        reloaded(workspace),
+        %{name: "Acme Studio", slug: "acme-studio", default_stack: chosen},
+        actor: owner
+      )
+
+    assert {:ok, _} = set_up(reloaded(workspace), owner, "Acme Labs", "Engineering")
+    assert_saved(workspace, owner, "Acme Labs", "acme-labs", "Engineering", stack: chosen)
   end
 
   # Not a model scenario: setting up the same name again keeps the

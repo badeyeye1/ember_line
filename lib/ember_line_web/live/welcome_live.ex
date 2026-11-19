@@ -31,6 +31,8 @@ defmodule EmberLineWeb.WelcomeLive do
            page_title: "Welcome",
            workspace: workspace,
            first_name: first_name(user),
+           # The browser's time zone (app.js connect params); UTC if missing or unknown.
+           time_zone: connected?(socket) && get_connect_params(socket)["time_zone"],
            error: nil,
            form:
              to_form(%{"name" => workspace.name, "title" => user.title || "Product"},
@@ -48,7 +50,11 @@ defmodule EmberLineWeb.WelcomeLive do
   def handle_event("continue", %{"welcome" => params}, socket) do
     workspace = socket.assigns.workspace
 
-    case Workspace.set_up_workspace(workspace, params["name"], params["title"],
+    case Workspace.set_up_workspace(
+           workspace,
+           params["name"],
+           params["title"],
+           socket.assigns.time_zone || nil,
            actor: socket.assigns.current_user
          ) do
       {:ok, _workspace} ->

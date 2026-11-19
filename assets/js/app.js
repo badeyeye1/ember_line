@@ -28,7 +28,8 @@ import topbar from "../vendor/topbar"
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken},
+  // time_zone: the browser's IANA time zone (setup-workspace's ProfileSaved.timeZone).
+  params: {_csrf_token: csrfToken, time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone},
   hooks: {...colocatedHooks},
 })
 

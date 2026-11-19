@@ -22,7 +22,7 @@ defmodule EmberLine.Accounts.Workspace do
   end
 
   code_interface do
-    define :set_up_workspace, args: [:name, :title]
+    define :set_up_workspace, args: [:name, :title, :time_zone]
     define :save_workspace_details
   end
 
@@ -64,10 +64,14 @@ defmodule EmberLine.Accounts.Workspace do
         constraints match: ~r/\A(Product|Engineering|Design|Something else)\z/
       end
 
+      # From the browser; missing or unknown becomes UTC (SaveTitleToProfile).
+      argument :time_zone, :string, allow_nil?: true
+
       validate Validations.CanChangeWorkspaceSettings
       validate {Validations.WorkspaceNameGiven, message: "Give your workspace a name."}
 
       change Changes.SlugFromName
+      change Changes.FirstStackIfNone
       change Changes.RecordWorkspaceDetailsSaved
       change Changes.SaveTitleToProfile
     end
