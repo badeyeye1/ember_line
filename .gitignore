@@ -35,3 +35,6 @@ ember_line-*.tar
 npm-debug.log
 /assets/node_modules/
 
+
+# Agent worktrees (Claude Code)
+/.claude/worktrees/
