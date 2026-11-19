@@ -51,7 +51,7 @@ defmodule EmberLineWeb.ProjectsLiveTest do
     assert row.name == "Edgemastery"
     assert row.source_type == :new
     assert row.persistence_mode == :event_sourced
-    assert row.created_by_id == ctx.user.id
+    assert row.created_by == ctx.user.id
   end
 
   test "GitHub project with branch", ctx do
