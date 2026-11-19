@@ -1,13 +1,14 @@
 defmodule EmberLineWeb.ProjectsLive do
   @moduledoc """
   Screen projects: the workspace's project list (read model ProjectList,
-  slice view-projects) and the Create project form (slice create-project).
+  slice view-projects), the Create project form (slice create-project) and
+  the Delete button on each project card (slice delete-project).
   """
   use EmberLineWeb, :live_view
 
   alias EmberLine.CommandedApp
   alias EmberLine.Modeling.Errors
-  alias EmberLine.Modeling.Project.CreateProject
+  alias EmberLine.Modeling.Project.{CreateProject, DeleteProject}
   alias EmberLine.Modeling.Projections.ProjectList
 
   on_mount {EmberLineWeb.LiveUserAuth, :live_user_required}
@@ -52,6 +53,7 @@ defmodule EmberLineWeb.ProjectsLive do
         {:ok,
          socket
          |> assign(page_title: "Projects", workspace_id: workspace_id, error: nil)
+         |> assign(armed: nil, delete_error: nil)
          |> assign_projects()
          |> assign_form(@new_form)}
 
@@ -94,6 +96,41 @@ defmodule EmberLineWeb.ProjectsLive do
       {:error, reason} ->
         {:noreply, socket |> assign(error: Errors.message(reason)) |> assign_form(params)}
     end
+  end
+
+  # delete-project: the first click dispatches unconfirmed and the aggregate
+  # asks to confirm; a second click on the same card dispatches confirmed.
+  def handle_event("delete", %{"id" => project_id}, socket) do
+    if Enum.any?(socket.assigns.projects, &(&1.project_id == project_id)) do
+      command = %DeleteProject{
+        project_id: project_id,
+        deleted_by: socket.assigns.current_user.id,
+        confirmed: socket.assigns.armed == project_id,
+        deleted_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      }
+
+      {:noreply,
+       deleted(socket, project_id, CommandedApp.dispatch(command, consistency: :strong))}
+    else
+      # Only the projects this list shows can be deleted from it.
+      {:noreply, deleted(socket, project_id, {:error, :project_not_found})}
+    end
+  end
+
+  defp deleted(socket, _project_id, :ok) do
+    socket |> assign(armed: nil, delete_error: nil) |> assign_projects()
+  end
+
+  defp deleted(socket, project_id, {:error, {:confirm_delete, _name} = reason}) do
+    assign(socket, armed: project_id, delete_error: {project_id, Errors.message(reason)})
+  end
+
+  # The card may be gone (deleted elsewhere), so the error shows as a flash.
+  defp deleted(socket, _project_id, {:error, reason}) do
+    socket
+    |> assign(armed: nil, delete_error: nil)
+    |> assign_projects()
+    |> put_flash(:error, Errors.message(reason))
   end
 
   defp assign_projects(socket) do
@@ -217,6 +254,23 @@ defmodule EmberLineWeb.ProjectsLive do
                   </span>
                   <span>Created {Calendar.strftime(project.created_at, "%-d %b %Y")}</span>
                 </p>
+                <.notice
+                  :if={match?({id, _} when id == project.project_id, @delete_error)}
+                  tone="err"
+                >
+                  {elem(@delete_error, 1)}
+                </.notice>
+                <div class="flex flex-wrap items-center gap-2">
+                  <.button
+                    variant="danger"
+                    size="small"
+                    phx-click="delete"
+                    phx-value-id={project.project_id}
+                    aria-pressed={to_string(@armed == project.project_id)}
+                  >
+                    Delete
+                  </.button>
+                </div>
               </div>
             </.card>
           </div>

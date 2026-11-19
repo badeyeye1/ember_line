@@ -6,7 +6,7 @@ defmodule EmberLine.Modeling.ViewProjectsTest do
   use EmberLine.DataCase, async: false
   use EmberLine.EventModelCase
 
-  alias EmberLine.Modeling.Project.CreateProject
+  alias EmberLine.Modeling.Project.{CreateProject, DeleteProject}
   alias EmberLine.Modeling.Projections.ProjectList
 
   setup do
@@ -87,6 +87,22 @@ defmodule EmberLine.Modeling.ViewProjectsTest do
 
     assert [%{name: "Ledger", persistence_mode: :event_sourced}] =
              ProjectList.for_workspace!(ctx.workspace)
+  end
+
+  # ProjectDeleted comes from the delete-project slice.
+  test "Deleted project is not listed", ctx do
+    create!(ctx, name: "Emberline", source_type: :new)
+    spare = Ecto.UUID.generate()
+    create!(ctx, project_id: spare, name: "Spare", source_type: :new)
+
+    dispatch!(%DeleteProject{
+      project_id: spare,
+      deleted_by: ctx.account,
+      confirmed: true,
+      deleted_at: ~U[2026-11-19 09:30:00Z]
+    })
+
+    assert Enum.map(ProjectList.for_workspace!(ctx.workspace), & &1.name) == ["Emberline"]
   end
 
   # Not a model scenario: the list is per workspace.
