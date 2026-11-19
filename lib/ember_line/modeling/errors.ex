@@ -15,12 +15,40 @@ defmodule EmberLine.Modeling.Errors do
       "Pick where the code comes from: start fresh, a folder on this computer, or GitHub.",
     # delete-project
     delete_not_allowed: "Only editors and admins can delete a project.",
-    project_not_found: "That project doesn't exist."
+    # delete-project and load-prototype
+    project_not_found: "That project doesn't exist.",
+    # load-prototype
+    load_not_allowed: "Only editors can load a prototype.",
+    too_much_in_one_load:
+      "These files add up to more than 100 MB. Load fewer at a time, or remove large images.",
+    no_usable_screens:
+      "We couldn't find any screens in those files. Drop HTML files, screenshots or a .zip of the prototype."
   }
 
   @doc "What the screen shows for the error."
   def message({:confirm_delete, name}),
     do: "Click Delete again to delete #{name}. This can't be undone."
 
+  def message({:files_unreadable, [name]}),
+    do: "We couldn't read #{name}. Check the file and try again."
+
+  def message({:files_unreadable, names}),
+    do: "We couldn't read #{names(names)}. Check the files and try again."
+
+  def message({:files_too_large, [name]}),
+    do: "#{name} is larger than 20 MB. Remove embedded videos or large images and try again."
+
+  def message({:files_too_large, names}),
+    do:
+      "#{names(names)} are larger than 20 MB. Remove embedded videos or large images and try again."
+
   def message(reason), do: Map.get(@messages, reason, "Something went wrong. Try again.")
+
+  @doc ~S|Several names, written "a and b" or "a, b and c".|
+  def names([name]), do: name
+
+  def names(names) do
+    {init, [last]} = Enum.split(names, -1)
+    Enum.join(init, ", ") <> " and " <> last
+  end
 end
