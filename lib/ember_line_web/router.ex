@@ -66,7 +66,11 @@ defmodule EmberLineWeb.Router do
       live "/reset", ForgotLive
       live "/reset/sent", ForgotSentLive
       live "/password-reset/:token", ResetLive
+      # Screen: verify (slice verify-email)
+      live "/verify/:token", VerifyLive
     end
+
+    post "/verify/session", VerifySessionController, :create
 
     auth_routes AuthController, EmberLine.Accounts.User, path: "/auth"
 

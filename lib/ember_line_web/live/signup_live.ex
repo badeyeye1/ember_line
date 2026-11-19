@@ -3,8 +3,9 @@ defmodule EmberLineWeb.SignupLive do
   Screen signup: the Create account form (slice register).
 
   The form checks the RegisterAccount rules as you type and on submit. A
-  valid form is posted to AshAuthentication's register endpoint, which runs
-  the same action, records AccountRegistered and signs the new member in.
+  valid submit runs the action, which records AccountRegistered and emails a
+  6-digit code, then goes to the verify screen. Signing in comes from
+  verify-email (SignedIn), not from registering.
   """
   use EmberLineWeb, :live_view
 
@@ -15,8 +16,7 @@ defmodule EmberLineWeb.SignupLive do
     {:ok,
      assign(socket,
        page_title: "Create your account",
-       form: new_form(),
-       trigger_action: false
+       form: new_form()
      )}
   end
 
@@ -26,8 +26,14 @@ defmodule EmberLineWeb.SignupLive do
   end
 
   def handle_event("create", %{"user" => params}, socket) do
-    form = AshPhoenix.Form.validate(socket.assigns.form, params)
-    {:noreply, assign(socket, form: form, trigger_action: form.source.valid?)}
+    case AshPhoenix.Form.submit(socket.assigns.form, params: params) do
+      {:ok, account} ->
+        {:noreply,
+         push_navigate(socket, to: ~p"/verify/#{EmberLineWeb.VerifyLive.token_for(account)}")}
+
+      {:error, form} ->
+        {:noreply, assign(socket, form: form)}
+    end
   end
 
   defp new_form do
@@ -46,11 +52,8 @@ defmodule EmberLineWeb.SignupLive do
       <.form
         for={@form}
         id="register-form"
-        action={~p"/auth/user/password/register"}
-        method="post"
         phx-change="validate"
         phx-submit="create"
-        phx-trigger-action={@trigger_action}
       >
         <.field field={@form[:full_name]} label="Full name" autocomplete="name" />
         <.field
