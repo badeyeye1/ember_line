@@ -2,7 +2,7 @@
   "format": "event-model",
   "version": 1,
   "generator": "Event-Model Builder (prototype)",
-  "exportedAt": "2026-11-19T13:14:31.347Z",
+  "exportedAt": "2026-11-19T14:34:56.251Z",
   "project": {
     "id": "pmwldlygxbto7",
     "name": "EmberLine",
@@ -3176,16 +3176,22 @@
         {
           "name": "PrototypeSplitIntoPages",
           "fields": [
+            "projectId: uuid",
             "prototypeId: uuid",
             "pageCount: integer",
             "roleCount: integer",
+            "skippedCount: integer",
+            "timedOut: boolean",
+            "splitBy: uuid",
             "splitAt: utc_datetime"
           ]
         },
         {
           "name": "SplitUndone",
           "fields": [
+            "projectId: uuid",
             "prototypeId: uuid",
+            "undoneBy: uuid",
             "undoneAt: utc_datetime"
           ]
         }
@@ -3199,7 +3205,7 @@
           },
           {
             "event": "PrototypeSplitIntoPages",
-            "does": "replace the tabs with one tab per page, mark the prototype as split and store the page count"
+            "does": "isSplit = true; pageCount, roleCount, skippedPageCount = skippedCount and timedOut, for the board's split sentence; the tabs show the stored pages"
           },
           {
             "event": "SplitUndone",
@@ -3218,7 +3224,10 @@
           "pageCount: integer",
           "skippedCount: integer",
           "ignoredFileNames: array(string)",
-          "interactive: boolean"
+          "interactive: boolean",
+          "skippedPageCount: integer",
+          "timedOut: boolean",
+          "roleCount: integer"
         ]
       },
       "specs": [
@@ -3552,6 +3561,19 @@
             "PrototypeLoaded(prototypeId: p-1, fileNames: [page-01.html … page-80.html], fileCount: 80, skippedCount: 10, loadedBy: u-1)",
             "the board says: Loaded the first 80 of 90 files."
           ]
+        },
+        {
+          "kind": "edge",
+          "title": "Loading clears an earlier split",
+          "given": [
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)",
+            "PrototypeSplitIntoPages(prototypeId: p-1, pageCount: 12)"
+          ],
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [app-v2.html], unreadableFileNames: [], ignoredFileNames: [], interactive: true, tooLargeFileNames: [], totalBytes: 900000, loadedBy: u-1)",
+          "then": [
+            "PrototypeLoaded(prototypeId: p-1, fileNames: [app-v2.html], fileCount: 1, interactive: true, loadedBy: u-1)",
+            "the prototype is no longer split; its stored pages are removed"
+          ]
         }
       ]
     },
@@ -3564,21 +3586,30 @@
       "feature": "f-modeling",
       "screen": "board",
       "actor": "Member",
-      "story": "An editor turns a single interactive prototype into one separate page for every screen and role, so each page can be read and modeled on its own.",
+      "story": "An editor turns a single interactive prototype into one page for every screen and role, so each page can be read and modeled on its own. The browser does the split before the command: it runs the file in a hidden frame, clicks through every role and page, and saves a copy of each page it finds, stopping after 4 minutes. The command reports how many pages and roles were found and whether time ran out; the first 80 pages in the order found are kept. Pages are stored in a state-stored PrototypePage table keyed by prototypeId (title, role, route, html, position), replaced on each split; they never go in an event. A prototype can be split once: undo the split to split again. Loading a new prototype clears the split. For now any signed-in member of the workspace can split; once roles exist, only editors and admins. Download pages (.zip) is prototype-only for now: don't build it. The board's sentence is \"Split <file> into <n> page(s) across <r> role(s). Each tab above is one page.\", singular for 1, and without \"across …\" when the prototype has no role picker (0 roles). When time ran out or the limit was reached, \"(stopped after 4 minutes)\" or \"(stopped at 80)\" goes before the full stop of the first sentence.",
       "uiElement": "Split into pages button",
       "command": {
         "name": "SplitPrototype",
         "fields": [
-          "prototypeId: uuid"
+          "projectId: uuid",
+          "prototypeId: uuid",
+          "foundPageCount: integer",
+          "roleCount: integer",
+          "timedOut: boolean",
+          "splitBy: uuid"
         ]
       },
       "produces": [
         {
           "name": "PrototypeSplitIntoPages",
           "fields": [
+            "projectId: uuid",
             "prototypeId: uuid",
             "pageCount: integer",
             "roleCount: integer",
+            "skippedCount: integer",
+            "timedOut: boolean",
+            "splitBy: uuid",
             "splitAt: utc_datetime"
           ]
         }
@@ -3591,18 +3622,21 @@
           "kind": "success",
           "title": "Split an interactive prototype",
           "given": [
-            "PrototypeLoaded(prototypeId: p-1, fileCount: 1, interactive: true)"
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)"
           ],
-          "when": "SplitPrototype(prototypeId: p-1)",
+          "when": "SplitPrototype(projectId: pr-1, prototypeId: p-1, foundPageCount: 12, roleCount: 3, timedOut: false, splitBy: u-1)",
           "then": [
-            "PrototypeSplitIntoPages(prototypeId: p-1, pageCount: 12, roleCount: 3)"
+            "PrototypeSplitIntoPages(projectId: pr-1, prototypeId: p-1, pageCount: 12, roleCount: 3, skippedCount: 0, timedOut: false, splitBy: u-1)",
+            "the board says: Split app.html into 12 pages across 3 roles. Each tab above is one page."
           ]
         },
         {
           "kind": "error",
           "title": "No prototype loaded",
-          "given": [],
-          "when": "SplitPrototype(prototypeId: p-1)",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "SplitPrototype(projectId: pr-1, prototypeId: p-1, foundPageCount: 12, roleCount: 3, timedOut: false, splitBy: u-1)",
           "then": [
             "error: Load an interactive HTML prototype first: only those can be split into pages."
           ]
@@ -3611,9 +3645,9 @@
           "kind": "error",
           "title": "Only static pages loaded",
           "given": [
-            "PrototypeLoaded(prototypeId: p-1, fileCount: 2, interactive: false)"
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [a.html, b.html], fileCount: 2, interactive: false)"
           ],
-          "when": "SplitPrototype(prototypeId: p-1)",
+          "when": "SplitPrototype(projectId: pr-1, prototypeId: p-1, foundPageCount: 12, roleCount: 3, timedOut: false, splitBy: u-1)",
           "then": [
             "error: Load an interactive HTML prototype first: only those can be split into pages."
           ]
@@ -3622,9 +3656,9 @@
           "kind": "error",
           "title": "No separate pages found",
           "given": [
-            "PrototypeLoaded(prototypeId: p-1, fileCount: 1, interactive: true)"
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)"
           ],
-          "when": "SplitPrototype(prototypeId: p-1) finds 0 pages",
+          "when": "SplitPrototype(projectId: pr-1, prototypeId: p-1, foundPageCount: 0, roleCount: 0, timedOut: false, splitBy: u-1)",
           "then": [
             "error: No separate pages found. Derive the model from the whole file instead."
           ]
@@ -3633,22 +3667,132 @@
           "kind": "error",
           "title": "Prototype does not respond",
           "given": [
-            "PrototypeLoaded(prototypeId: p-1, fileCount: 1, interactive: true)"
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)"
           ],
-          "when": "SplitPrototype(prototypeId: p-1) times out",
+          "when": "SplitPrototype(projectId: pr-1, prototypeId: p-1, foundPageCount: 0, roleCount: 0, timedOut: true, splitBy: u-1)",
           "then": [
             "error: The prototype didn't respond while it was being split. Reload it and try again."
           ]
         },
         {
           "kind": "edge",
+          "title": "Time runs out after some pages were found",
+          "given": [
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)"
+          ],
+          "when": "SplitPrototype(projectId: pr-1, prototypeId: p-1, foundPageCount: 9, roleCount: 2, timedOut: true, splitBy: u-1)",
+          "then": [
+            "PrototypeSplitIntoPages(prototypeId: p-1, pageCount: 9, roleCount: 2, skippedCount: 0, timedOut: true, splitBy: u-1)",
+            "the board says: Split app.html into 9 pages across 2 roles (stopped after 4 minutes). Each tab above is one page."
+          ]
+        },
+        {
+          "kind": "edge",
           "title": "Page limit reached",
           "given": [
-            "PrototypeLoaded(prototypeId: p-1, fileCount: 1, interactive: true)"
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)"
           ],
-          "when": "SplitPrototype(prototypeId: p-1) finds 120 pages",
+          "when": "SplitPrototype(projectId: pr-1, prototypeId: p-1, foundPageCount: 120, roleCount: 3, timedOut: false, splitBy: u-1)",
           "then": [
-            "PrototypeSplitIntoPages(pageCount: 80)"
+            "PrototypeSplitIntoPages(prototypeId: p-1, pageCount: 80, roleCount: 3, skippedCount: 40, timedOut: false, splitBy: u-1)",
+            "the first 80 pages in the order found are kept",
+            "the board says: Split app.html into 80 pages across 3 roles (stopped at 80). Each tab above is one page."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Already split",
+          "given": [
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)",
+            "PrototypeSplitIntoPages(prototypeId: p-1, pageCount: 12)"
+          ],
+          "when": "SplitPrototype(projectId: pr-1, prototypeId: p-1, foundPageCount: 12, roleCount: 3, timedOut: false, splitBy: u-1)",
+          "then": [
+            "error: This prototype is already split. Undo the split first."
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "Splitting again after an undo",
+          "given": [
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)",
+            "PrototypeSplitIntoPages(prototypeId: p-1, pageCount: 12)",
+            "SplitUndone(prototypeId: p-1)"
+          ],
+          "when": "SplitPrototype(projectId: pr-1, prototypeId: p-1, foundPageCount: 14, roleCount: 3, timedOut: false, splitBy: u-1)",
+          "then": [
+            "PrototypeSplitIntoPages(prototypeId: p-1, pageCount: 14, roleCount: 3, skippedCount: 0, timedOut: false, splitBy: u-1)",
+            "the stored pages for p-1 are replaced"
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "A new load clears the split",
+          "given": [
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)",
+            "PrototypeSplitIntoPages(prototypeId: p-1, pageCount: 12)",
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app-v2.html], fileCount: 1, interactive: true)"
+          ],
+          "when": "SplitPrototype(projectId: pr-1, prototypeId: p-1, foundPageCount: 15, roleCount: 3, timedOut: false, splitBy: u-1)",
+          "then": [
+            "PrototypeSplitIntoPages(prototypeId: p-1, pageCount: 15, roleCount: 3, skippedCount: 0, timedOut: false, splitBy: u-1)"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "No such project",
+          "given": [],
+          "when": "SplitPrototype(projectId: pr-404, prototypeId: p-1, foundPageCount: 12, roleCount: 3, timedOut: false, splitBy: u-1)",
+          "then": [
+            "error: That project doesn't exist."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Viewers and commenters can't split (once roles exist)",
+          "given": [
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)",
+            "MemberRoleChanged(accountId: u-7, role: Viewer)"
+          ],
+          "when": "SplitPrototype(projectId: pr-1, prototypeId: p-1, foundPageCount: 12, roleCount: 3, timedOut: false, splitBy: u-7)",
+          "then": [
+            "error: Only editors can split a prototype."
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "A prototype with no role picker",
+          "given": [
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)"
+          ],
+          "when": "SplitPrototype(projectId: pr-1, prototypeId: p-1, foundPageCount: 5, roleCount: 0, timedOut: false, splitBy: u-1)",
+          "then": [
+            "PrototypeSplitIntoPages(projectId: pr-1, prototypeId: p-1, pageCount: 5, roleCount: 0, skippedCount: 0, timedOut: false, splitBy: u-1)",
+            "the board says: Split app.html into 5 pages. Each tab above is one page."
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "Only one role",
+          "given": [
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)"
+          ],
+          "when": "SplitPrototype(projectId: pr-1, prototypeId: p-1, foundPageCount: 5, roleCount: 1, timedOut: false, splitBy: u-1)",
+          "then": [
+            "PrototypeSplitIntoPages(projectId: pr-1, prototypeId: p-1, pageCount: 5, roleCount: 1, skippedCount: 0, timedOut: false, splitBy: u-1)",
+            "the board says: Split app.html into 5 pages across 1 role. Each tab above is one page."
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "Only one page found",
+          "given": [
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)"
+          ],
+          "when": "SplitPrototype(projectId: pr-1, prototypeId: p-1, foundPageCount: 1, roleCount: 2, timedOut: false, splitBy: u-1)",
+          "then": [
+            "PrototypeSplitIntoPages(projectId: pr-1, prototypeId: p-1, pageCount: 1, roleCount: 2, skippedCount: 0, timedOut: false, splitBy: u-1)",
+            "the board says: Split app.html into 1 page across 2 roles. Each tab above is one page."
           ]
         }
       ]
@@ -3662,19 +3806,23 @@
       "feature": "f-modeling",
       "screen": "board",
       "actor": "Member",
-      "story": "An editor goes back to the original prototype file after splitting it into pages.",
+      "story": "An editor goes back to the original prototype file after splitting it into pages. The split's pages are removed from the PrototypePage table and the loaded file is shown again. For now any signed-in member of the workspace can undo a split; once roles exist, only editors and admins.",
       "uiElement": "Undo button",
       "command": {
         "name": "UndoSplit",
         "fields": [
-          "prototypeId: uuid"
+          "projectId: uuid",
+          "prototypeId: uuid",
+          "undoneBy: uuid"
         ]
       },
       "produces": [
         {
           "name": "SplitUndone",
           "fields": [
+            "projectId: uuid",
             "prototypeId: uuid",
+            "undoneBy: uuid",
             "undoneAt: utc_datetime"
           ]
         }
@@ -3687,21 +3835,23 @@
           "kind": "success",
           "title": "Undo after split",
           "given": [
-            "PrototypeLoaded(prototypeId: p-1, fileCount: 1)",
-            "PrototypeSplitIntoPages(prototypeId: p-1, pageCount: 12)"
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)",
+            "PrototypeSplitIntoPages(projectId: pr-1, prototypeId: p-1, pageCount: 12, roleCount: 3)"
           ],
-          "when": "UndoSplit(prototypeId: p-1)",
+          "when": "UndoSplit(projectId: pr-1, prototypeId: p-1, undoneBy: u-1)",
           "then": [
-            "SplitUndone(prototypeId: p-1)"
+            "SplitUndone(projectId: pr-1, prototypeId: p-1, undoneBy: u-1)",
+            "the 12 stored pages for p-1 are removed",
+            "the board says: Undid the split. The tabs show app.html again."
           ]
         },
         {
           "kind": "error",
           "title": "Nothing was split",
           "given": [
-            "PrototypeLoaded(prototypeId: p-1, fileCount: 1)"
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)"
           ],
-          "when": "UndoSplit(prototypeId: p-1)",
+          "when": "UndoSplit(projectId: pr-1, prototypeId: p-1, undoneBy: u-1)",
           "then": [
             "error: There's no split to undo."
           ]
@@ -3709,8 +3859,10 @@
         {
           "kind": "error",
           "title": "No prototype",
-          "given": [],
-          "when": "UndoSplit(prototypeId: p-1)",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "UndoSplit(projectId: pr-1, prototypeId: p-1, undoneBy: u-1)",
           "then": [
             "error: There's no split to undo."
           ]
@@ -3719,24 +3871,48 @@
           "kind": "edge",
           "title": "Undo twice",
           "given": [
-            "PrototypeSplitIntoPages(prototypeId: p-1, pageCount: 12)",
-            "SplitUndone(prototypeId: p-1)"
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)",
+            "PrototypeSplitIntoPages(projectId: pr-1, prototypeId: p-1, pageCount: 12, roleCount: 3)",
+            "SplitUndone(projectId: pr-1, prototypeId: p-1)"
           ],
-          "when": "UndoSplit(prototypeId: p-1)",
+          "when": "UndoSplit(projectId: pr-1, prototypeId: p-1, undoneBy: u-1)",
           "then": [
             "error: There's no split to undo."
           ]
         },
         {
           "kind": "edge",
-          "title": "Split again after undo",
+          "title": "A new load already cleared the split",
           "given": [
-            "PrototypeSplitIntoPages(prototypeId: p-1, pageCount: 12)",
-            "SplitUndone(prototypeId: p-1)"
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)",
+            "PrototypeSplitIntoPages(projectId: pr-1, prototypeId: p-1, pageCount: 12, roleCount: 3)",
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app-v2.html], fileCount: 1, interactive: true)"
           ],
-          "when": "SplitPrototype(prototypeId: p-1)",
+          "when": "UndoSplit(projectId: pr-1, prototypeId: p-1, undoneBy: u-1)",
           "then": [
-            "PrototypeSplitIntoPages(prototypeId: p-1, pageCount: 12)"
+            "error: There's no split to undo."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "No such project",
+          "given": [],
+          "when": "UndoSplit(projectId: pr-404, prototypeId: p-1, undoneBy: u-1)",
+          "then": [
+            "error: That project doesn't exist."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Viewers and commenters can't undo a split (once roles exist)",
+          "given": [
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)",
+            "PrototypeSplitIntoPages(projectId: pr-1, prototypeId: p-1, pageCount: 12, roleCount: 3)",
+            "MemberRoleChanged(accountId: u-7, role: Viewer)"
+          ],
+          "when": "UndoSplit(projectId: pr-1, prototypeId: p-1, undoneBy: u-7)",
+          "then": [
+            "error: Only editors can undo a split."
           ]
         }
       ]
@@ -15160,7 +15336,10 @@
           "pageCount: integer",
           "skippedCount: integer",
           "ignoredFileNames: array(string)",
-          "interactive: boolean"
+          "interactive: boolean",
+          "skippedPageCount: integer",
+          "timedOut: boolean",
+          "roleCount: integer"
         ],
         "column": 20,
         "step": 21,
@@ -15175,7 +15354,7 @@
         "label": "Prototype screens projection",
         "fields": [
           "on PrototypeLoaded: replace the entry: screenNames = fileNames, fileCount, skippedCount (for \"Loaded the first 80 of 95 files.\"), ignoredFileNames (for the ignored-files note), interactive; isSplit = false",
-          "on PrototypeSplitIntoPages: replace the tabs with one tab per page, mark the prototype as split and store the page count",
+          "on PrototypeSplitIntoPages: isSplit = true; pageCount, roleCount, skippedPageCount = skippedCount and timedOut, for the board's split sentence; the tabs show the stored pages",
           "on SplitUndone: restore the original file tabs and clear the split flag"
         ],
         "column": 20,
@@ -15190,7 +15369,7 @@
           },
           {
             "event": "PrototypeSplitIntoPages",
-            "does": "replace the tabs with one tab per page, mark the prototype as split and store the page count"
+            "does": "isSplit = true; pageCount, roleCount, skippedPageCount = skippedCount and timedOut, for the board's split sentence; the tabs show the stored pages"
           },
           {
             "event": "SplitUndone",
@@ -15265,9 +15444,13 @@
         "name": "PrototypeSplitIntoPages",
         "label": "Prototype split into pages",
         "fields": [
+          "projectId: uuid",
           "prototypeId: uuid",
           "pageCount: integer",
           "roleCount: integer",
+          "skippedCount: integer",
+          "timedOut: boolean",
+          "splitBy: uuid",
           "splitAt: utc_datetime"
         ],
         "column": 22,
@@ -15296,7 +15479,12 @@
         "name": "SplitPrototype",
         "label": "Split prototype",
         "fields": [
-          "prototypeId: uuid"
+          "projectId: uuid",
+          "prototypeId: uuid",
+          "foundPageCount: integer",
+          "roleCount: integer",
+          "timedOut: boolean",
+          "splitBy: uuid"
         ],
         "column": 22,
         "step": 23,
@@ -15310,7 +15498,9 @@
         "name": "SplitUndone",
         "label": "Split undone",
         "fields": [
+          "projectId: uuid",
           "prototypeId: uuid",
+          "undoneBy: uuid",
           "undoneAt: utc_datetime"
         ],
         "column": 23,
@@ -15339,7 +15529,9 @@
         "name": "UndoSplit",
         "label": "Undo split",
         "fields": [
-          "prototypeId: uuid"
+          "projectId: uuid",
+          "prototypeId: uuid",
+          "undoneBy: uuid"
         ],
         "column": 23,
         "step": 24,
