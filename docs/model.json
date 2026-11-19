@@ -2,7 +2,7 @@
   "format": "event-model",
   "version": 1,
   "generator": "Event-Model Builder (prototype)",
-  "exportedAt": "2026-11-19T13:04:12.594Z",
+  "exportedAt": "2026-11-19T13:14:31.347Z",
   "project": {
     "id": "pmwldlygxbto7",
     "name": "EmberLine",
@@ -3291,7 +3291,7 @@
       "feature": "f-modeling",
       "screen": "board",
       "actor": "Member",
-      "story": "An editor drops in a prototype (HTML files, screenshots, or a .zip of them) or pastes its HTML, so the team can see its screens and model them. Usable files are .html/.htm, .png/.jpg/.webp and .zip archives of those; anything else is ignored and named in a note. Up to 80 files are kept, the first 80 by name; a file may be up to 20 MB and a load up to 100 MB in total. A prototype is interactive when it's a single HTML file whose links or scripts move between screens without loading another file; only those can be split into pages. The files themselves are stored in a PrototypeFile table (state stored, keyed by prototypeId: name, type, content), replaced when the prototype is loaded again; they're never put in an event. For now any signed-in member of the workspace can load one; once roles exist, only editors and admins.",
+      "story": "An editor drops in a prototype (HTML files, screenshots, or a .zip of them) or pastes its HTML, so the team can see its screens and model them. Usable files are .html/.htm, .png/.jpg/.webp and .zip archives of those; anything else is ignored and named in a note. Up to 80 files are kept, the first 80 by name; a file may be up to 20 MB and a load up to 100 MB in total. A prototype is interactive when it's a single HTML file whose links or scripts move between screens without loading another file; only those can be split into pages. The files themselves are stored in a PrototypeFile table (state stored, keyed by prototypeId: name, type, content), replaced when the prototype is loaded again; they're never put in an event. For now any signed-in member of the workspace can load one; once roles exist, only editors and admins. Before the command, the code reading the files works out: which files are usable (and keeps the first 80 by name), which are ignored, which can't be read, which of the kept ones are over 20 MB, the kept files' total size, and whether the prototype is interactive. Interactive means exactly one HTML file was loaded and it has links to # anchors or a script that shows or hides sections; a set of files is never interactive. Size limits apply only to the kept files. When several errors apply, the first wins: unreadable, then too large, then too much in one load, then no usable screens. Several names are written \"a.zip and b.zip\", or \"a.zip, b.zip and c.zip\".",
       "uiElement": "Choose files / paste HTML",
       "command": {
         "name": "LoadPrototype",
@@ -3303,7 +3303,7 @@
           "unreadableFileNames: array(string)",
           "ignoredFileNames: array(string)",
           "interactive: boolean",
-          "largestFileBytes: integer",
+          "tooLargeFileNames: array(string)",
           "totalBytes: integer",
           "loadedBy: uuid"
         ]
@@ -3335,7 +3335,7 @@
           "given": [
             "ProjectCreated(projectId: pr-1)"
           ],
-          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [a.html, b.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, largestFileBytes: 40000, totalBytes: 70000, loadedBy: u-1)",
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [a.html, b.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, tooLargeFileNames: [], totalBytes: 70000, loadedBy: u-1)",
           "then": [
             "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [a.html, b.html], fileCount: 2, skippedCount: 0, ignoredFileNames: [], interactive: false, loadedBy: u-1)"
           ]
@@ -3346,7 +3346,7 @@
           "given": [
             "ProjectCreated(projectId: pr-1)"
           ],
-          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: paste, fileNames: [pasted-prototype.html], unreadableFileNames: [], ignoredFileNames: [], interactive: true, largestFileBytes: 900000, totalBytes: 900000, loadedBy: u-1)",
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: paste, fileNames: [pasted-prototype.html], unreadableFileNames: [], ignoredFileNames: [], interactive: true, tooLargeFileNames: [], totalBytes: 900000, loadedBy: u-1)",
           "then": [
             "PrototypeLoaded(prototypeId: p-1, source: paste, fileNames: [pasted-prototype.html], fileCount: 1, skippedCount: 0, interactive: true, loadedBy: u-1)"
           ]
@@ -3357,7 +3357,7 @@
           "given": [
             "ProjectCreated(projectId: pr-1)"
           ],
-          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [home.html, home.png], unreadableFileNames: [], ignoredFileNames: [notes.txt, logo.svg], interactive: false, largestFileBytes: 300000, totalBytes: 400000, loadedBy: u-1)",
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [home.html, home.png], unreadableFileNames: [], ignoredFileNames: [notes.txt, logo.svg], interactive: false, tooLargeFileNames: [], totalBytes: 400000, loadedBy: u-1)",
           "then": [
             "PrototypeLoaded(prototypeId: p-1, fileNames: [home.html, home.png], fileCount: 2, ignoredFileNames: [notes.txt, logo.svg], loadedBy: u-1)",
             "the board notes: Ignored notes.txt and logo.svg: only HTML, screenshots and .zip files are used."
@@ -3369,7 +3369,7 @@
           "given": [
             "ProjectCreated(projectId: pr-1)"
           ],
-          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [], unreadableFileNames: [], ignoredFileNames: [notes.txt], interactive: false, largestFileBytes: 2000, totalBytes: 2000, loadedBy: u-1)",
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [], unreadableFileNames: [], ignoredFileNames: [notes.txt], interactive: false, tooLargeFileNames: [], totalBytes: 2000, loadedBy: u-1)",
           "then": [
             "error: We couldn't find any screens in those files. Drop HTML files, screenshots or a .zip of the prototype."
           ]
@@ -3380,7 +3380,7 @@
           "given": [
             "ProjectCreated(projectId: pr-1)"
           ],
-          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [], unreadableFileNames: [broken.zip], ignoredFileNames: [], interactive: false, largestFileBytes: 5000, totalBytes: 5000, loadedBy: u-1)",
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [], unreadableFileNames: [broken.zip], ignoredFileNames: [], interactive: false, tooLargeFileNames: [], totalBytes: 5000, loadedBy: u-1)",
           "then": [
             "error: We couldn't read broken.zip. Check the file and try again."
           ]
@@ -3391,7 +3391,7 @@
           "given": [
             "ProjectCreated(projectId: pr-1)"
           ],
-          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [video-walkthrough.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, largestFileBytes: 26000000, totalBytes: 26000000, loadedBy: u-1)",
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [video-walkthrough.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, tooLargeFileNames: [video-walkthrough.html], totalBytes: 26000000, loadedBy: u-1)",
           "then": [
             "error: video-walkthrough.html is larger than 20 MB. Remove embedded videos or large images and try again."
           ]
@@ -3402,7 +3402,7 @@
           "given": [
             "ProjectCreated(projectId: pr-1)"
           ],
-          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [60 files], unreadableFileNames: [], ignoredFileNames: [], interactive: false, largestFileBytes: 4000000, totalBytes: 120000000, loadedBy: u-1)",
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [60 files], unreadableFileNames: [], ignoredFileNames: [], interactive: false, tooLargeFileNames: [], totalBytes: 120000000, loadedBy: u-1)",
           "then": [
             "error: These files add up to more than 100 MB. Load fewer at a time, or remove large images."
           ]
@@ -3413,7 +3413,7 @@
           "given": [
             "ProjectCreated(projectId: pr-1)"
           ],
-          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [95 files, page-01.html … page-95.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, largestFileBytes: 50000, totalBytes: 3000000, loadedBy: u-1)",
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [95 files, page-01.html … page-95.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, tooLargeFileNames: [], totalBytes: 3000000, loadedBy: u-1)",
           "then": [
             "PrototypeLoaded(prototypeId: p-1, fileNames: [page-01.html … page-80.html], fileCount: 80, skippedCount: 15, loadedBy: u-1)",
             "the board says: Loaded the first 80 of 95 files."
@@ -3425,7 +3425,7 @@
           "given": [
             "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileCount: 3)"
           ],
-          "when": "LoadPrototype(prototypeId: p-9, projectId: pr-1, source: files, fileNames: [c.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, largestFileBytes: 20000, totalBytes: 20000, loadedBy: u-1)",
+          "when": "LoadPrototype(prototypeId: p-9, projectId: pr-1, source: files, fileNames: [c.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, tooLargeFileNames: [], totalBytes: 20000, loadedBy: u-1)",
           "then": [
             "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [c.html], fileCount: 1, loadedBy: u-1)",
             "the stored files for p-1 are replaced by c.html"
@@ -3438,9 +3438,119 @@
             "ProjectCreated(projectId: pr-1)",
             "MemberRoleChanged(accountId: u-7, role: Viewer)"
           ],
-          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [a.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, largestFileBytes: 4000, totalBytes: 4000, loadedBy: u-7)",
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [a.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, tooLargeFileNames: [], totalBytes: 4000, loadedBy: u-7)",
           "then": [
             "error: Only editors can load a prototype."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Several files unreadable",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [], unreadableFileNames: [a.zip, b.zip, c.zip], ignoredFileNames: [], interactive: false, tooLargeFileNames: [], totalBytes: 40000, loadedBy: u-1)",
+          "then": [
+            "error: We couldn't read a.zip, b.zip and c.zip. Check the files and try again."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Several files too large",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [a.html, b.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, tooLargeFileNames: [a.html, b.html], totalBytes: 52000000, loadedBy: u-1)",
+          "then": [
+            "error: a.html and b.html are larger than 20 MB. Remove embedded videos or large images and try again."
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "Unreadable beats too large",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [big.html], unreadableFileNames: [broken.zip], ignoredFileNames: [], interactive: false, tooLargeFileNames: [big.html], totalBytes: 26000000, loadedBy: u-1)",
+          "then": [
+            "error: We couldn't read broken.zip. Check the file and try again."
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "Too large beats too much in one load",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [big.html, 60 more files], unreadableFileNames: [], ignoredFileNames: [], interactive: false, tooLargeFileNames: [big.html], totalBytes: 130000000, loadedBy: u-1)",
+          "then": [
+            "error: big.html is larger than 20 MB. Remove embedded videos or large images and try again."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "No such project",
+          "given": [],
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-404, source: files, fileNames: [a.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, tooLargeFileNames: [], totalBytes: 40000, loadedBy: u-1)",
+          "then": [
+            "error: That project doesn't exist."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Deleted project",
+          "given": [
+            "ProjectCreated(projectId: pr-1)",
+            "ProjectDeleted(projectId: pr-1)"
+          ],
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [a.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, tooLargeFileNames: [], totalBytes: 40000, loadedBy: u-1)",
+          "then": [
+            "error: That project doesn't exist."
+          ]
+        },
+        {
+          "kind": "success",
+          "title": "One HTML file with in-page navigation is interactive",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "the person drops app.html, which has links to #signin and #board and a script that shows one section at a time; the code reading the files sets interactive: true",
+          "then": [
+            "PrototypeLoaded(prototypeId: p-1, fileNames: [app.html], fileCount: 1, interactive: true, loadedBy: u-1)"
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "One HTML file of plain content isn't interactive",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "the person drops about.html: text and images, no links to # anchors and no script that shows or hides sections; interactive: false",
+          "then": [
+            "PrototypeLoaded(prototypeId: p-1, fileNames: [about.html], fileCount: 1, interactive: false, loadedBy: u-1)"
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "A set of HTML files is never interactive",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "the person drops home.html and board.html, each with in-page navigation; interactive: false because more than one HTML file was loaded",
+          "then": [
+            "PrototypeLoaded(prototypeId: p-1, fileNames: [board.html, home.html], fileCount: 2, interactive: false, loadedBy: u-1)"
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "A large file beyond the first 80 doesn't block the load",
+          "given": [
+            "ProjectCreated(projectId: pr-1)"
+          ],
+          "when": "LoadPrototype(prototypeId: p-1, projectId: pr-1, source: files, fileNames: [page-01.html … page-80.html], unreadableFileNames: [], ignoredFileNames: [], interactive: false, tooLargeFileNames: [], totalBytes: 9000000, loadedBy: u-1) · page-90.html (30 MB) is file 90 by name, so it's skipped and not checked",
+          "then": [
+            "PrototypeLoaded(prototypeId: p-1, fileNames: [page-01.html … page-80.html], fileCount: 80, skippedCount: 10, loadedBy: u-1)",
+            "the board says: Loaded the first 80 of 90 files."
           ]
         }
       ]
@@ -15139,7 +15249,7 @@
           "unreadableFileNames: array(string)",
           "ignoredFileNames: array(string)",
           "interactive: boolean",
-          "largestFileBytes: integer",
+          "tooLargeFileNames: array(string)",
           "totalBytes: integer",
           "loadedBy: uuid"
         ],
