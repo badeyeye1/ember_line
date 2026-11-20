@@ -67,6 +67,8 @@ Your job is the judgment:
 
 ## Rules
 
+- **Check ahead before handing over.** Before the agent starts the next slices in this order, run `review-spec-skill.md` in **ahead** mode on the next 3 to 5 of them, plus every slice that shares a command or an event with them. Fix the model until they're ready, then hand them over. A slice that isn't ready stays out of the agent's queue.
+
 **1. Dependencies are hard; everything else is preference**
 - Never place a slice before a slice it depends on.
 - In-flight slices count as coming first. Don't re-send them.
