@@ -263,7 +263,11 @@ defmodule EmberLine.Modeling.DeriveModelTest do
 
     for {how, text} <- [
           {"not the outline", "Sorry, I can't help with that."},
-          {"no slices", ~s({"app":{"name":"X"},"screens":[],"slices":[]})}
+          {"no slices", ~s({"app":{"name":"X"},"screens":[],"slices":[]})},
+          {"a slice with an empty name",
+           ~s({"screens":[],"slices":[{"id":"a","name":"","pattern":"state_view"}]})},
+          {"a slice with an unknown pattern",
+           ~s({"screens":[],"slices":[{"id":"a","name":"A","pattern":"batch"}]})}
         ] do
       test "Claude's answer can't be read: #{how}", ctx do
         load_files!(ctx, ["board.html", "home.html", "settings.html"])
@@ -278,6 +282,34 @@ defmodule EmberLine.Modeling.DeriveModelTest do
         assert model_derived(ctx) == []
         assert Derivation.get(run.derivation_id) == nil
       end
+    end
+
+    test "An outline that's too big", ctx do
+      load_files!(ctx, ["board.html", "home.html", "settings.html"])
+      stub_claude(answer(screens: 3, slices: 512, outcomes: 5))
+      assert Derive.max_slices() == 400
+
+      {:ok, _run} = Derive.start(ctx.project_id, ctx.account)
+      run_jobs()
+
+      run = Derive.latest_run(ctx.project_id)
+      assert run.status == :failed
+
+      assert run.message ==
+               "Claude returned 512 slices, more than one derive can take (400). Derive one feature at a time."
+
+      assert model_derived(ctx) == []
+      assert Derivation.get(run.derivation_id) == nil
+    end
+
+    test "Exactly at the setting, the outline is taken", ctx do
+      load_files!(ctx, ["board.html"])
+      stub_claude(answer(screens: 1, slices: 400, outcomes: 1))
+
+      {:ok, _run} = Derive.start(ctx.project_id, ctx.account)
+      run_jobs()
+
+      assert Derive.latest_run(ctx.project_id).message == "Mapped 1 screen into 400 slices."
     end
 
     test "Stopped while running", ctx do

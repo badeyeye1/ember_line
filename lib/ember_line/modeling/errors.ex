@@ -60,6 +60,11 @@ defmodule EmberLine.Modeling.Errors do
     do:
       "#{names(names)} are larger than 20 MB. Remove embedded videos or large images and try again."
 
+  # derive-model
+  def message({:outline_too_big, count, max}),
+    do:
+      "Claude returned #{count} slices, more than one derive can take (#{max}). Derive one feature at a time."
+
   def message(reason), do: Map.get(@messages, reason, "Something went wrong. Try again.")
 
   @doc ~S|Several names, written "a and b" or "a, b and c".|
