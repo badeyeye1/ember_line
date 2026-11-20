@@ -8,6 +8,7 @@ defmodule EmberLine.Modeling do
 
   resources do
     resource EmberLine.Modeling.Projections.ProjectList
+    resource EmberLine.Modeling.Projections.PrototypeScreens
     resource EmberLine.Modeling.PrototypeFile
     resource EmberLine.Modeling.PrototypePage
   end

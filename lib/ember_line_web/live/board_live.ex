@@ -1,20 +1,20 @@
 defmodule EmberLineWeb.BoardLive do
   @moduledoc """
-  Screen board, the intake panel only: drop or choose a prototype's files,
-  or paste its HTML (slice load-prototype), then Split into pages (slice
-  split-pages) and Undo split (slice undo-split).
+  Screen board, the intake panel and the prototype's screens: drop or choose
+  a prototype's files, or paste its HTML (slice load-prototype), then Split
+  into pages (slice split-pages) and Undo split (slice undo-split). The
+  screens show as tabs, with the notes, from the PrototypeScreens read model
+  (slice view-intake), so they come back when the board opens again.
 
-  Split into pages and Undo split show for an interactive prototype loaded on this visit.
-  Until view-intake's read model exists, the board can't tell which
-  prototype a project has after a reload. The rest of the board (screens,
-  timeline, slices, the code banner, Derive model) belongs to other slices.
+  The rest of the board (the summary, timeline, slices, the code banner,
+  Derive model) belongs to other slices.
   """
   use EmberLineWeb, :live_view
 
   alias EmberLine.Accounts.Workspace
   alias EmberLine.Modeling.{Errors, Intake, Prototypes}
   alias EmberLine.Modeling.Project
-  alias EmberLine.Modeling.Projections.ProjectList
+  alias EmberLine.Modeling.Projections.{ProjectList, PrototypeScreens}
   alias EmberLineWeb.PrototypeController
 
   on_mount {EmberLineWeb.LiveUserAuth, :live_user_required}
@@ -34,8 +34,8 @@ defmodule EmberLineWeb.BoardLive do
       {:ok,
        socket
        |> assign(page_title: project.name, workspace: workspace, project: project)
-       |> assign(error: nil, notes: [], paste: to_form(%{"html" => ""}, as: :paste))
-       |> assign(loaded: nil, pages: [])
+       |> assign(error: nil, paste: to_form(%{"html" => ""}, as: :paste), pages: [])
+       |> show_screens()
        |> allow_upload(:prototype,
          accept: :any,
          max_entries: @max_entries,
@@ -91,23 +91,12 @@ defmodule EmberLineWeb.BoardLive do
     socket = assign(socket, pages: [])
 
     case result do
-      {:ok, split} ->
-        {:noreply,
-         socket
-         |> assign(error: nil, notes: [Prototypes.split_note(loaded.file_name, split)])
-         |> assign(loaded: %{loaded | split?: true})}
+      {:ok, _split} ->
+        {:noreply, socket |> assign(error: nil) |> show_screens()}
 
-      # Split elsewhere: offer Undo split here too.
-      {:error, :already_split = reason} ->
-        {:noreply,
-         assign(socket,
-           error: Errors.message(reason),
-           notes: [],
-           loaded: %{loaded | split?: true}
-         )}
-
+      # Split elsewhere: the screens show it, and Undo split is offered with the error.
       {:error, reason} ->
-        {:noreply, assign(socket, error: Errors.message(reason), notes: [])}
+        {:noreply, socket |> show_screens() |> assign(error: Errors.message(reason), notes: [])}
     end
   end
 
@@ -121,19 +110,23 @@ defmodule EmberLineWeb.BoardLive do
            socket.assigns.current_user.id
          ) do
       {:ok, _undone} ->
-        {:noreply,
-         assign(socket,
-           error: nil,
-           notes: [Prototypes.undo_note(loaded.file_name)],
-           loaded: %{loaded | split?: false}
-         )}
+        socket = socket |> assign(error: nil) |> show_screens()
+        {:noreply, assign(socket, notes: [Prototypes.undo_note(socket.assigns.loaded.file_name)])}
 
       {:error, reason} ->
-        {:noreply, assign(socket, error: Errors.message(reason), notes: [])}
+        {:noreply, socket |> show_screens() |> assign(error: Errors.message(reason), notes: [])}
     end
   end
 
   def handle_event("undo_split", _params, socket), do: {:noreply, socket}
+
+  # view-intake: flip between the screens.
+  def handle_event("show_tab", %{"position" => position}, socket) do
+    case Enum.find(socket.assigns.screens.tabs, &("#{&1.position}" == position)) do
+      nil -> {:noreply, socket}
+      tab -> {:noreply, show_tab(socket, tab)}
+    end
+  end
 
   defp count(n) when is_integer(n) and n >= 0, do: n
   defp count(_not_a_count), do: 0
@@ -174,39 +167,52 @@ defmodule EmberLineWeb.BoardLive do
            intake,
            socket.assigns.current_user.id
          ) do
-      {:ok, loaded} ->
-        notes =
-          Enum.reject(
-            [
-              Intake.skipped_note(loaded.file_count, loaded.skipped_count),
-              Intake.ignored_note(loaded.ignored_file_names)
-            ],
-            &is_nil/1
-          )
-
-        assign(socket,
-          error: nil,
-          notes: notes,
-          pages: [],
-          loaded: loaded_prototype(loaded, intake)
-        )
+      {:ok, _loaded} ->
+        socket |> assign(error: nil, pages: []) |> show_screens()
 
       {:error, reason} ->
         assign(socket, error: Errors.message(reason), notes: [])
     end
   end
 
-  # The loaded prototype, for Split into pages: its one file when it has one.
-  defp loaded_prototype(loaded, %{file_names: [file_name], interactive: true}) do
+  # view-intake: the screens and notes from the read model, on the first tab.
+  defp show_screens(socket) do
+    screens = PrototypeScreens.for_project!(socket.assigns.project.project_id)
+
+    socket
+    |> assign(screens: screens, notes: screens.notes, loaded: loaded_prototype(screens))
+    |> show_tab(List.first(screens.tabs))
+  end
+
+  defp show_tab(socket, nil), do: assign(socket, tab: nil, tab_src: nil)
+
+  defp show_tab(socket, tab) do
+    prototype_id = socket.assigns.screens.prototype_id
+
+    token =
+      case tab.kind do
+        :page -> PrototypeController.page_token(prototype_id, tab.source)
+        _file -> PrototypeController.token(prototype_id, tab.source)
+      end
+
+    assign(socket, tab: tab, tab_src: ~p"/prototype/#{token}")
+  end
+
+  # The loaded prototype, for Split into pages and Undo split: an interactive
+  # prototype's one file. While it's split, its tabs are the pages.
+  defp loaded_prototype(%{interactive: true, file_count: 1, is_split: true} = screens),
+    do: %{prototype_id: screens.prototype_id, file_name: nil, split?: true, src: nil}
+
+  defp loaded_prototype(%{interactive: true, file_count: 1, tabs: [%{source: name}]} = screens) do
     %{
-      prototype_id: loaded.prototype_id,
-      file_name: file_name,
+      prototype_id: screens.prototype_id,
+      file_name: name,
       split?: false,
-      src: ~p"/prototype/#{PrototypeController.token(loaded.prototype_id, file_name)}"
+      src: ~p"/prototype/#{PrototypeController.token(screens.prototype_id, name)}"
     }
   end
 
-  defp loaded_prototype(_loaded, _intake), do: nil
+  defp loaded_prototype(_screens), do: nil
 
   @impl true
   def render(assigns) do
@@ -266,6 +272,41 @@ defmodule EmberLineWeb.BoardLive do
         <.notice :for={{note, i} <- Enum.with_index(@notes)} id={"intake-note-#{i}"}>
           {note}<.undo_split :if={@loaded && @loaded.split? && !@error && i == 0} />
         </.notice>
+
+        <section class="ui-screen-band" aria-label="Prototype screens">
+          <div class="ui-screen-col">
+            <div
+              :if={length(@screens.tabs) > 1}
+              class="ui-screen-tabs"
+              role="tablist"
+              aria-label="Prototype files"
+            >
+              <button
+                :for={tab <- @screens.tabs}
+                type="button"
+                role="tab"
+                aria-selected={to_string(tab.position == @tab.position)}
+                title={tab.label}
+                phx-click="show_tab"
+                phx-value-position={tab.position}
+              >
+                {tab.label}
+              </button>
+            </div>
+            <div class="ui-screen-frame">
+              <div class="bar">
+                <i></i><i></i><i></i>
+                <span id="screen-label">{screen_label(@screens.tabs, @tab)}</span>
+              </div>
+              <div class="ui-screen-view" id="screen-view">
+                <.screen :if={@tab} tab={@tab} src={@tab_src} />
+                <div :if={!@tab} class="ui-nomatch">
+                  Drop the prototype above to see its screens here.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </section>
     </Layouts.app>
     <script :type={Phoenix.LiveView.ColocatedHook} name=".Splitter">
@@ -333,6 +374,36 @@ defmodule EmberLineWeb.BoardLive do
         }
       }
     </script>
+    """
+  end
+
+  # view-intake: the frame's label, as in the prototype.
+  defp screen_label(_tabs, nil), do: "No prototype yet"
+  defp screen_label([_one], tab), do: tab.label
+
+  defp screen_label(tabs, tab),
+    do: "#{tab.label} · #{Enum.find_index(tabs, &(&1 == tab)) + 1} of #{length(tabs)}"
+
+  # view-intake: screenshots as images; HTML files and pages sandboxed with
+  # scripts off; an interactive prototype's file live, sandboxed.
+  attr :tab, :map, required: true
+  attr :src, :string, required: true
+
+  defp screen(%{tab: %{kind: :image}} = assigns) do
+    ~H"""
+    <img src={@src} alt={@tab.label} />
+    """
+  end
+
+  defp screen(%{tab: %{kind: :live_html}} = assigns) do
+    ~H"""
+    <iframe id={"screen-#{@tab.position}"} src={@src} title={@tab.label} sandbox="allow-scripts"></iframe>
+    """
+  end
+
+  defp screen(assigns) do
+    ~H"""
+    <iframe id={"screen-#{@tab.position}"} src={@src} title={@tab.label} sandbox=""></iframe>
     """
   end
 

@@ -12,6 +12,7 @@ defmodule EmberLine.Application do
       EmberLine.Repo,
       EmberLine.CommandedApp,
       EmberLine.Modeling.Projections.ProjectListProjection,
+      EmberLine.Modeling.Projections.PrototypeScreensProjection,
       {Oban, Application.fetch_env!(:ember_line, Oban)},
       {DNSCluster, query: Application.get_env(:ember_line, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: EmberLine.PubSub},

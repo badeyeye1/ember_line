@@ -1,8 +1,11 @@
 defmodule EmberLineWeb.PrototypeControllerTest do
-  @moduledoc "split-pages: the loaded prototype, served sandboxed to the board's hidden frame."
+  @moduledoc """
+  The loaded prototype, served sandboxed: to the board's hidden frame
+  (split-pages) and its tabs (view-intake).
+  """
   use EmberLineWeb.ConnCase, async: false
 
-  alias EmberLine.Modeling.PrototypeFile
+  alias EmberLine.Modeling.{PrototypeFile, PrototypePage}
   alias EmberLineWeb.PrototypeController
 
   setup do
@@ -29,12 +32,29 @@ defmodule EmberLineWeb.PrototypeControllerTest do
     assert policy =~ "frame-ancestors 'self'"
   end
 
-  test "a bad token, another file or a non-HTML file isn't served", %{
-    conn: conn,
-    prototype_id: id
-  } do
+  test "serves a screenshot as its image type", %{conn: conn, prototype_id: id} do
+    conn = get(conn, ~p"/prototype/#{PrototypeController.token(id, "shot.png")}")
+
+    assert response(conn, 200) == "png"
+    assert response_content_type(conn, :png) =~ "image/png"
+  end
+
+  test "serves a split page's HTML, sandboxed", %{conn: conn, prototype_id: id} do
+    :ok =
+      PrototypePage.replace!(id, [
+        %{title: "Home", role: "Host", route: "#home", html: "<p>Home</p>"},
+        %{title: "Workshops", role: "Host", route: "#ws", html: "<p>Workshops</p>"}
+      ])
+
+    conn = get(conn, ~p"/prototype/#{PrototypeController.page_token(id, 2)}")
+
+    assert response(conn, 200) == "<p>Workshops</p>"
+    assert [_policy] = get_resp_header(conn, "content-security-policy")
+  end
+
+  test "a bad token or another file or page isn't served", %{conn: conn, prototype_id: id} do
     assert response(get(conn, ~p"/prototype/forged"), 404)
     assert response(get(conn, ~p"/prototype/#{PrototypeController.token(id, "other.html")}"), 404)
-    assert response(get(conn, ~p"/prototype/#{PrototypeController.token(id, "shot.png")}"), 404)
+    assert response(get(conn, ~p"/prototype/#{PrototypeController.page_token(id, 1)}"), 404)
   end
 end

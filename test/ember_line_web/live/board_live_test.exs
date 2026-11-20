@@ -317,6 +317,121 @@ defmodule EmberLineWeb.BoardLiveTest do
              live(other.conn, path(ctx))
   end
 
+  # view-intake
+
+  test "Nothing loaded yet: the frame says so", ctx do
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+
+    assert has_element?(view, ".ui-screen-frame #screen-label", "No prototype yet")
+
+    assert has_element?(
+             view,
+             "#screen-view .ui-nomatch",
+             "Drop the prototype above to see its screens here."
+           )
+
+    refute has_element?(view, "[role=tab]")
+  end
+
+  test "Shows loaded files as tabs: HTML static, screenshots as images", ctx do
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+
+    input =
+      file_input(view, "#prototype-files", :prototype, [
+        %{name: "board.html", content: "<p>board</p>", type: "text/html"},
+        %{name: "home.png", content: "png", type: "image/png"}
+      ])
+
+    for name <- ["board.html", "home.png"], do: render_upload(input, name)
+
+    assert has_element?(view, "[role=tab][aria-selected=true]", "board.html")
+    assert has_element?(view, "[role=tab][aria-selected=false]", "home.png")
+    assert has_element?(view, "#screen-label", "board.html · 1 of 2")
+    assert has_element?(view, "#screen-view iframe[sandbox=''][src^='/prototype/']")
+
+    view |> element("[role=tab]", "home.png") |> render_click()
+
+    assert has_element?(view, "[role=tab][aria-selected=true]", "home.png")
+    assert has_element?(view, "#screen-label", "home.png · 2 of 2")
+    assert has_element?(view, "#screen-view img[alt='home.png'][src^='/prototype/']")
+  end
+
+  test "An interactive prototype runs live, with no tab bar for one file", ctx do
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+    paste_interactive(view)
+
+    refute has_element?(view, "[role=tab]")
+    assert has_element?(view, "#screen-label", "pasted-prototype.html")
+    assert has_element?(view, "#screen-view iframe[sandbox='allow-scripts'][src^='/prototype/']")
+  end
+
+  test "Split replaces tabs with pages", ctx do
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+    paste_interactive(view)
+
+    for {n, role} <- [{1, "Host"}, {2, "Member"}], do: split_page(view, n, role)
+
+    render_hook(element(view, "#split-pages"), "split_done", %{
+      found: 2,
+      roles: 2,
+      timed_out: false
+    })
+
+    assert has_element?(view, "[role=tab][aria-selected=true]", "Host · Page 1")
+    assert has_element?(view, "[role=tab]", "Member · Page 2")
+    assert has_element?(view, "#screen-view iframe[sandbox=''][src^='/prototype/']")
+  end
+
+  test "Notes come back after a reload", ctx do
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+
+    input =
+      file_input(view, "#prototype-files", :prototype, [
+        %{name: "a.html", content: "<p>a</p>", type: "text/html"},
+        %{name: "notes.txt", content: "x", type: "text/plain"}
+      ])
+
+    for name <- ["a.html", "notes.txt"], do: render_upload(input, name)
+
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+
+    assert has_element?(
+             view,
+             "#intake-note-0",
+             "Ignored notes.txt: only HTML, screenshots and .zip files are used."
+           )
+
+    assert has_element?(view, "#screen-label", "a.html")
+  end
+
+  test "A split shows again after a reload, with Undo split", ctx do
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+    paste_interactive(view)
+    split_into(view, 3)
+
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+
+    assert has_element?(
+             view,
+             "#intake-note-0",
+             "Split pasted-prototype.html into 3 pages. Each tab above is one page."
+           )
+
+    assert has_element?(view, "[role=tab]", "Page 3")
+    refute has_element?(view, "#split-pages")
+
+    view |> element("#undo-split") |> render_click()
+
+    assert has_element?(
+             view,
+             "#intake-note-0",
+             "Undid the split. The tabs show pasted-prototype.html again."
+           )
+
+    assert has_element?(view, "#screen-label", "pasted-prototype.html")
+    assert has_element?(view, "#split-pages")
+  end
+
   defp files_for(ctx) do
     project = Aggregate.aggregate_state(CommandedApp, Project, "project-" <> ctx.project_id)
     PrototypeFile.for_prototype!(project.prototype_id)
