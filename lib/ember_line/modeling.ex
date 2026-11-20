@@ -13,5 +13,7 @@ defmodule EmberLine.Modeling do
     resource EmberLine.Modeling.PrototypePage
     resource EmberLine.Modeling.DerivationRun
     resource EmberLine.Modeling.Derivation
+    resource EmberLine.Modeling.Projections.SlicesToCreate
+    resource EmberLine.Modeling.Projections.AddedSlices
   end
 end
