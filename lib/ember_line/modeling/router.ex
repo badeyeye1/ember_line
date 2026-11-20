@@ -3,7 +3,14 @@ defmodule EmberLine.Modeling.Router do
   use Commanded.Commands.Router
 
   alias EmberLine.Modeling.Project
-  alias EmberLine.Modeling.Project.{CreateProject, DeleteProject, LoadPrototype, SplitPrototype}
+
+  alias EmberLine.Modeling.Project.{
+    CreateProject,
+    DeleteProject,
+    LoadPrototype,
+    SplitPrototype,
+    UndoSplit
+  }
 
   identify Project, by: :project_id, prefix: "project-"
 
@@ -18,4 +25,7 @@ defmodule EmberLine.Modeling.Router do
 
   # split-pages
   dispatch SplitPrototype, to: Project
+
+  # undo-split
+  dispatch UndoSplit, to: Project
 end

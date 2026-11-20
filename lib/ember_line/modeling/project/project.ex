@@ -17,7 +17,8 @@ defmodule EmberLine.Modeling.Project do
     PrototypeLoaded,
     PrototypeSplitIntoPages,
     SplitPrototype,
-    SplitUndone
+    SplitUndone,
+    UndoSplit
   }
 
   @source_types [:new, :local, :github]
@@ -124,6 +125,18 @@ defmodule EmberLine.Modeling.Project do
     end
   end
 
+  # undo-split
+
+  def execute(%__MODULE__{} = project, %UndoSplit{} = command) do
+    cond do
+      is_nil(project.project_id) or project.deleted? -> {:error, :project_not_found}
+      # Until Member roles exist, "allowed" means signed in.
+      is_nil(command.undone_by) -> {:error, :undo_split_not_allowed}
+      not project.split? -> {:error, :nothing_to_undo}
+      true -> split_undone(project, command)
+    end
+  end
+
   defp split_found_pages(_project, %SplitPrototype{found_page_count: 0, timed_out: true}),
     do: {:error, :prototype_did_not_respond}
 
@@ -207,6 +220,15 @@ defmodule EmberLine.Modeling.Project do
       timed_out: command.timed_out,
       split_by: command.split_by,
       split_at: command.split_at
+    }
+  end
+
+  defp split_undone(project, %UndoSplit{} = command) do
+    %SplitUndone{
+      project_id: project.project_id,
+      prototype_id: project.prototype_id,
+      undone_by: command.undone_by,
+      undone_at: command.undone_at
     }
   end
 

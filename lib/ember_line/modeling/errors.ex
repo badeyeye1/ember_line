@@ -30,7 +30,10 @@ defmodule EmberLine.Modeling.Errors do
     already_split: "This prototype is already split. Undo the split first.",
     prototype_did_not_respond:
       "The prototype didn't respond while it was being split. Reload it and try again.",
-    no_pages_found: "No separate pages found. Derive the model from the whole file instead."
+    no_pages_found: "No separate pages found. Derive the model from the whole file instead.",
+    # undo-split
+    undo_split_not_allowed: "Only editors can undo a split.",
+    nothing_to_undo: "There's no split to undo."
   }
 
   @doc "What the screen shows for the error."

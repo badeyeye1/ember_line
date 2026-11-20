@@ -2,9 +2,9 @@ defmodule EmberLineWeb.BoardLive do
   @moduledoc """
   Screen board, the intake panel only: drop or choose a prototype's files,
   or paste its HTML (slice load-prototype), then Split into pages (slice
-  split-pages).
+  split-pages) and Undo split (slice undo-split).
 
-  Split into pages shows for an interactive prototype loaded on this visit.
+  Split into pages and Undo split show for an interactive prototype loaded on this visit.
   Until view-intake's read model exists, the board can't tell which
   prototype a project has after a reload. The rest of the board (screens,
   timeline, slices, the code banner, Derive model) belongs to other slices.
@@ -93,7 +93,18 @@ defmodule EmberLineWeb.BoardLive do
     case result do
       {:ok, split} ->
         {:noreply,
-         assign(socket, error: nil, notes: [Prototypes.split_note(loaded.file_name, split)])}
+         socket
+         |> assign(error: nil, notes: [Prototypes.split_note(loaded.file_name, split)])
+         |> assign(loaded: %{loaded | split?: true})}
+
+      # Split elsewhere: offer Undo split here too.
+      {:error, :already_split = reason} ->
+        {:noreply,
+         assign(socket,
+           error: Errors.message(reason),
+           notes: [],
+           loaded: %{loaded | split?: true}
+         )}
 
       {:error, reason} ->
         {:noreply, assign(socket, error: Errors.message(reason), notes: [])}
@@ -101,6 +112,28 @@ defmodule EmberLineWeb.BoardLive do
   end
 
   def handle_event("split_done", _params, socket), do: {:noreply, socket}
+
+  # undo-split
+  def handle_event("undo_split", _params, %{assigns: %{loaded: %{} = loaded}} = socket) do
+    case Prototypes.undo_split(
+           socket.assigns.project.project_id,
+           loaded.prototype_id,
+           socket.assigns.current_user.id
+         ) do
+      {:ok, _undone} ->
+        {:noreply,
+         assign(socket,
+           error: nil,
+           notes: [Prototypes.undo_note(loaded.file_name)],
+           loaded: %{loaded | split?: false}
+         )}
+
+      {:error, reason} ->
+        {:noreply, assign(socket, error: Errors.message(reason), notes: [])}
+    end
+  end
+
+  def handle_event("undo_split", _params, socket), do: {:noreply, socket}
 
   defp count(n) when is_integer(n) and n >= 0, do: n
   defp count(_not_a_count), do: 0
@@ -168,6 +201,7 @@ defmodule EmberLineWeb.BoardLive do
     %{
       prototype_id: loaded.prototype_id,
       file_name: file_name,
+      split?: false,
       src: ~p"/prototype/#{PrototypeController.token(loaded.prototype_id, file_name)}"
     }
   end
@@ -212,7 +246,7 @@ defmodule EmberLineWeb.BoardLive do
                 placeholder="…or paste the HTML of a Claude prototype"
               >{Phoenix.HTML.Form.normalize_value("textarea", @paste[:html].value)}</textarea>
             </.form>
-            <div :if={@loaded} class="flex flex-wrap gap-2">
+            <div :if={@loaded && !@loaded.split?} class="flex flex-wrap gap-2">
               <.button
                 id="split-pages"
                 type="button"
@@ -226,8 +260,12 @@ defmodule EmberLineWeb.BoardLive do
           </div>
         </section>
 
-        <.notice :if={@error} tone="err" id="intake-error">{@error}</.notice>
-        <.notice :for={{note, i} <- Enum.with_index(@notes)} id={"intake-note-#{i}"}>{note}</.notice>
+        <.notice :if={@error} tone="err" id="intake-error">
+          {@error}<.undo_split :if={@loaded && @loaded.split?} />
+        </.notice>
+        <.notice :for={{note, i} <- Enum.with_index(@notes)} id={"intake-note-#{i}"}>
+          {note}<.undo_split :if={@loaded && @loaded.split? && !@error && i == 0} />
+        </.notice>
       </section>
     </Layouts.app>
     <script :type={Phoenix.LiveView.ColocatedHook} name=".Splitter">
@@ -295,6 +333,17 @@ defmodule EmberLineWeb.BoardLive do
         }
       }
     </script>
+    """
+  end
+
+  # undo-split: next to the split sentence, as in the prototype.
+  defp undo_split(assigns) do
+    ~H"""
+    <span class="ui-split-actions">
+      <.button id="undo-split" type="button" size="small" phx-click="undo_split">
+        Undo split
+      </.button>
+    </span>
     """
   end
 end
