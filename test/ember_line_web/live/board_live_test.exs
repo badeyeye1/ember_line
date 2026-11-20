@@ -9,7 +9,7 @@ defmodule EmberLineWeb.BoardLiveTest do
   alias EmberLine.CommandedApp
   alias EmberLine.Modeling.Project
   alias EmberLine.Modeling.Project.{CreateProject, DeleteProject}
-  alias EmberLine.Modeling.{PrototypeFile, PrototypePage}
+  alias EmberLine.Modeling.{PrototypeFile, PrototypePage, Prototypes}
 
   setup ctx do
     ctx = register_and_sign_in(ctx)
@@ -133,25 +133,104 @@ defmodule EmberLineWeb.BoardLiveTest do
              project.prototype_id |> PrototypePage.for_prototype!() |> Enum.map(& &1.title)
   end
 
-  test "Already split", ctx do
+  test "Already split: Split into pages hides until the split is undone", ctx do
     {:ok, view, _html} = live(ctx.conn, path(ctx))
     paste_interactive(view)
+    split_page(view, 1, "")
 
-    for _try <- 1..2 do
-      split_page(view, 1, "")
+    render_hook(element(view, "#split-pages"), "split_done", %{
+      found: 1,
+      roles: 0,
+      timed_out: false
+    })
 
-      render_hook(element(view, "#split-pages"), "split_done", %{
-        found: 1,
-        roles: 0,
-        timed_out: false
-      })
-    end
+    refute has_element?(view, "#split-pages")
+  end
+
+  # undo-split
+
+  defp split_into(view, count) do
+    for n <- 1..count, do: split_page(view, n, "")
+
+    render_hook(element(view, "#split-pages"), "split_done", %{
+      found: count,
+      roles: 0,
+      timed_out: false
+    })
+  end
+
+  test "Undo after split: the pages go and Split into pages comes back", ctx do
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+    paste_interactive(view)
+    refute has_element?(view, "#undo-split")
+
+    split_into(view, 12)
+    assert has_element?(view, "#intake-note-0 #undo-split", "Undo split")
+    refute has_element?(view, "#split-pages")
+
+    project = Aggregate.aggregate_state(CommandedApp, Project, "project-" <> ctx.project_id)
+    assert length(PrototypePage.for_prototype!(project.prototype_id)) == 12
+
+    view |> element("#undo-split") |> render_click()
+
+    assert has_element?(
+             view,
+             "#intake-note-0",
+             "Undid the split. The tabs show pasted-prototype.html again."
+           )
+
+    refute has_element?(view, "#undo-split")
+    assert has_element?(view, "#split-pages")
+    assert PrototypePage.for_prototype!(project.prototype_id) == []
+
+    # Splitting again after an undo works.
+    split_into(view, 2)
+    assert has_element?(view, "#intake-note-0", "Split pasted-prototype.html into 2 pages.")
+  end
+
+  test "Already split elsewhere: Undo split is offered with the error", ctx do
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+    paste_interactive(view)
+    project = Aggregate.aggregate_state(CommandedApp, Project, "project-" <> ctx.project_id)
+
+    pages = [%{title: "Home", role: "", route: "#home", html: "<p></p>"}]
+
+    {:ok, _split} =
+      Prototypes.split(
+        ctx.project_id,
+        project.prototype_id,
+        pages,
+        1,
+        0,
+        false,
+        ctx.user.id
+      )
+
+    split_into(view, 1)
 
     assert has_element?(
              view,
              "#intake-error",
              "This prototype is already split. Undo the split first."
            )
+
+    assert has_element?(view, "#intake-error #undo-split")
+    view |> element("#undo-split") |> render_click()
+    assert has_element?(view, "#intake-note-0", "Undid the split.")
+  end
+
+  test "Nothing was split: undone elsewhere first", ctx do
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+    paste_interactive(view)
+    split_into(view, 1)
+
+    project = Aggregate.aggregate_state(CommandedApp, Project, "project-" <> ctx.project_id)
+
+    {:ok, _undone} =
+      Prototypes.undo_split(ctx.project_id, project.prototype_id, ctx.user.id)
+
+    view |> element("#undo-split") |> render_click()
+    assert has_element?(view, "#intake-error", "There's no split to undo.")
   end
 
   test "Prototype does not respond", ctx do

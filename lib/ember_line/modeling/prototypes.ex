@@ -14,7 +14,9 @@ defmodule EmberLine.Modeling.Prototypes do
     LoadPrototype,
     PrototypeLimits,
     PrototypeSplitIntoPages,
-    SplitPrototype
+    SplitPrototype,
+    SplitUndone,
+    UndoSplit
   }
 
   @type loaded :: %{
@@ -98,6 +100,30 @@ defmodule EmberLine.Modeling.Prototypes do
       {:ok, event}
     end
   end
+
+  @doc """
+  Undoes the project's split (slice undo-split): dispatches UndoSplit, then
+  removes the split's stored pages.
+  """
+  @spec undo_split(Ecto.UUID.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, SplitUndone.t()} | {:error, term()}
+  def undo_split(project_id, prototype_id, account_id) do
+    command = %UndoSplit{
+      project_id: project_id,
+      prototype_id: prototype_id,
+      undone_by: account_id,
+      undone_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    }
+
+    with {:ok, %{events: [%SplitUndone{} = event]}} <-
+           CommandedApp.dispatch(command, consistency: :strong, returning: :execution_result) do
+      :ok = PrototypePage.remove!(event.prototype_id)
+      {:ok, event}
+    end
+  end
+
+  @doc "The board's sentence after a split of `file_name` is undone."
+  def undo_note(file_name), do: "Undid the split. The tabs show #{file_name} again."
 
   @doc "The pages a split keeps: the first 80 in the order found."
   def kept_pages(pages), do: Enum.take(pages, Project.max_pages())

@@ -326,4 +326,6 @@
   /* split-pages: the hidden frame the prototype runs in while it is split */
   .ui-offscreen { position: fixed; left: -12000px; top: 0; width: 1280px; height: 900px; overflow: hidden; pointer-events: none; }
   .ui-offscreen iframe { width: 1280px; height: 900px; border: 0; }
+  /* undo-split: Undo split beside the split sentence (prototype.css .split-actions) */
+  .ui-split-actions { display: inline-flex; gap: 6px; flex-wrap: wrap; margin-left: 6px; vertical-align: middle; }
 }
