@@ -2,7 +2,7 @@
   "format": "event-model",
   "version": 1,
   "generator": "Event-Model Builder (prototype)",
-  "exportedAt": "2026-11-20T14:59:35.019Z",
+  "exportedAt": "2026-11-20T19:07:46.529Z",
   "project": {
     "id": "pmwldlygxbto7",
     "name": "EmberLine",
@@ -2480,7 +2480,7 @@
       "feature": "f-accounts",
       "screen": "welcome",
       "actor": "Owner",
-      "story": "The new owner types in teammates' email addresses and picks what they can do, so the team is invited right at the start.",
+      "story": "The new owner types in teammates' email addresses and picks what they can do, so the team is invited right at the start. Same command and rules as invite-members. Rules, shared by the Members page and the Welcome page (both send InviteMembers): (1) Addresses are separated by commas, spaces, semicolons or new lines, then trimmed and lowercased; repeats are collapsed. At most 50 at a time: \"Invite up to 50 people at a time.\" (2) Any invalid address stops the whole batch, nothing is sent, and the error names them: \"x isn't a valid email.\" / \"x and y aren't valid emails.\" (three or more: \"x, y and z\"). (3) Addresses already in the workspace (the owner, or anyone who joined) are skipped. If every address is skipped: \"x is already in the workspace.\" / \"x and y are already in the workspace.\"; otherwise the skipped ones are named after the success sentence. (4) An address with a pending invite is invited again: same membershipId, the new role, a new invitedAt (the 7 days restart) and a new email; the old link keeps working until the invite expires. (5) Each invite emails the person (Swoosh): subject \"<inviter's name> invited you to <workspace> on Emberline\", a line saying the role, and a link /invite/<token>. The token is signed for the membershipId (never the bare id) and lasts as long as the invite, 7 days; view-invite and accept-invite read it. (6) Success: \"Sent 2 invites. Invites expire after 7 days.\" (\"Sent 1 invite.\" for one). (7) Who can invite: owners and admins: \"Only owners and admins can invite people.\" Until accept-invite and roles exist, that's only the owner. (8) No seat check for now: seats wait for billing. (9) MemberInvited.projectId is empty for workspace invites; it's set only when the invite comes from a project's Share dialog (share-invite). A workspace that doesn't exist or was deleted gives \"That workspace doesn't exist.\"",
       "uiElement": "Invite teammates form",
       "command": {
         "name": "InviteMembers",
@@ -2513,72 +2513,94 @@
           "kind": "success",
           "title": "Invite two teammates as editors",
           "given": [
-            "WorkspaceDetailsSaved(workspaceId: w-1)"
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)"
           ],
           "when": "InviteMembers(workspaceId: w-1, emails: [nia@company.com, tomi@company.com], role: Editor, invitedBy: u-1)",
           "then": [
-            "MemberInvited(workspaceId: w-1, email: nia@company.com, role: Editor)",
-            "MemberInvited(workspaceId: w-1, email: tomi@company.com, role: Editor)"
+            "MemberInvited(membershipId: m-1, workspaceId: w-1, email: nia@company.com, role: Editor, invitedBy: u-1, projectId: )",
+            "MemberInvited(membershipId: m-2, workspaceId: w-1, email: tomi@company.com, role: Editor, invitedBy: u-1, projectId: )",
+            "the page says: Sent 2 invites. Invites expire after 7 days."
           ]
         },
         {
           "kind": "error",
           "title": "Invalid email is rejected and nobody is invited",
           "given": [
-            "WorkspaceDetailsSaved(workspaceId: w-1)"
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)"
           ],
           "when": "InviteMembers(workspaceId: w-1, emails: [nia@company.com, not-an-email], role: Editor, invitedBy: u-1)",
           "then": [
-            "error: Check not-an-email: that isn't a valid email."
+            "error: not-an-email isn't a valid email.",
+            "no invites are sent"
           ]
         },
         {
           "kind": "edge",
           "title": "Several addresses separated by commas, spaces or semicolons",
           "given": [
-            "WorkspaceDetailsSaved(workspaceId: w-1)"
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)"
           ],
-          "when": "InviteMembers(workspaceId: w-1, emails: [a@x.com, b@x.com, c@x.com], role: Viewer, invitedBy: u-1)",
+          "when": "InviteMembers(workspaceId: w-1, emails: \"a@x.com; b@x.com c@x.com\", role: Viewer, invitedBy: u-1)",
           "then": [
-            "MemberInvited × 3"
+            "MemberInvited × 3",
+            "Sent 3 invites. Invites expire after 7 days."
           ]
         },
         {
           "kind": "edge",
-          "title": "Someone already invited is skipped",
+          "title": "Someone already invited is invited again",
           "given": [
-            "MemberInvited(workspaceId: w-1, email: nia@company.com, role: Editor)"
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)",
+            "MemberInvited(membershipId: m-1, workspaceId: w-1, email: nia@company.com, role: Editor, invitedBy: u-1, projectId: )"
           ],
           "when": "InviteMembers(workspaceId: w-1, emails: [nia@company.com, tomi@company.com], role: Commenter, invitedBy: u-1)",
           "then": [
-            "MemberInvited(workspaceId: w-1, email: tomi@company.com, role: Commenter)"
+            "MemberInvited(membershipId: m-1, workspaceId: w-1, email: nia@company.com, role: Commenter, invitedBy: u-1, projectId: ) · same membershipId, the 7 days restart",
+            "MemberInvited(membershipId: m-2, workspaceId: w-1, email: tomi@company.com, role: Commenter, invitedBy: u-1, projectId: )",
+            "Sent 2 invites. Invites expire after 7 days."
           ]
         },
         {
-          "kind": "edge",
-          "title": "Existing member is skipped",
+          "kind": "error",
+          "title": "Only the owner's own address",
           "given": [
-            "WorkspaceCreated(workspaceId: w-1, ownerEmail: ada@company.com)"
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)"
           ],
-          "when": "InviteMembers(workspaceId: w-1, emails: [ada@company.com], role: Editor, invitedBy: u-1)",
-          "then": []
+          "when": "InviteMembers(workspaceId: w-1, emails: [alex@acme.dev], role: Editor, invitedBy: u-1)",
+          "then": [
+            "error: alex@acme.dev is already in the workspace."
+          ]
         },
         {
           "kind": "edge",
           "title": "Addresses are matched without regard to case",
           "given": [
-            "MemberInvited(workspaceId: w-1, email: nia@company.com, role: Editor)"
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)",
+            "MemberInvited(membershipId: m-1, workspaceId: w-1, email: nia@company.com, role: Editor, invitedBy: u-1, projectId: )"
           ],
           "when": "InviteMembers(workspaceId: w-1, emails: [NIA@Company.com], role: Editor, invitedBy: u-1)",
-          "then": []
+          "then": [
+            "MemberInvited(membershipId: m-1, workspaceId: w-1, email: nia@company.com, role: Editor, invitedBy: u-1, projectId: ) · invited again, same membershipId"
+          ]
         },
         {
           "kind": "error",
           "title": "Role isn't one of the listed ones",
-          "given": [],
+          "given": [
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)"
+          ],
           "when": "InviteMembers(workspaceId: w-1, emails: [nia@acme.dev], role: Superuser, invitedBy: u-1)",
           "then": [
             "error: Pick a role from the list."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "No such workspace",
+          "given": [],
+          "when": "InviteMembers(workspaceId: w-404, …)",
+          "then": [
+            "error: That workspace doesn't exist."
           ]
         }
       ]
@@ -2657,8 +2679,8 @@
             "position: integer",
             "projectId: uuid",
             "featureId: uuid",
-            "produces: list",
-            "reads: list",
+            "produces: array(string)",
+            "reads: array(string)",
             "commandName: string",
             "readModelName: string",
             "projectionName: string"
@@ -3158,7 +3180,7 @@
       "feature": "f-modeling",
       "screen": "board",
       "actor": "Member",
-      "story": "Editors see the screens of the prototype they loaded as tabs, and whether it was split into pages. Rules: (1) Tab labels: a loaded file shows its file name; a split page shows \"Role · Title\" (for example \"Host · Workshops\"), or just the title when the prototype has no role picker. (2) How a tab is shown: screenshots as images; HTML files and split pages in a sandboxed frame with scripts off (they're static snapshots); the single file of an interactive prototype runs live in a sandboxed frame (scripts on, no access to the app), as it does for splitting. (3) Notes under the tabs, worked out from the read model every time the board opens, so they come back after a reload: \"Loaded the first 80 of 95 files.\" when files were skipped; \"Ignored notes.txt and logo.svg: only HTML, screenshots and .zip files are used.\" when files were ignored (names listed as \"a and b\" / \"a, b and c\"); and after a split, the split sentence from split-pages. (4) With nothing loaded, the frame says \"No prototype yet\" and \"Drop the prototype above to see its screens here.\"",
+      "story": "Editors see the screens of the prototype they loaded as tabs, and whether it was split into pages. Rules: (1) Tab labels: a loaded file shows its file name; a split page shows \"Role · Title\" (for example \"Host · Workshops\"), or just the title when the prototype has no role picker. (2) How a tab is shown: screenshots as images; HTML files and split pages in a sandboxed frame with scripts off (they're static snapshots); the single file of an interactive prototype runs live in a sandboxed frame (scripts on, no access to the app), as it does for splitting. (3) Notes under the tabs, worked out from the read model every time the board opens, so they come back after a reload: \"Loaded the first 80 of 95 files.\" when files were skipped; \"Ignored notes.txt and logo.svg: only HTML, screenshots and .zip files are used.\" when files were ignored (names listed as \"a and b\" / \"a, b and c\"); and after a split, the split sentence from split-pages, with its wording for 1 page, 1 role and no roles (singular for 1). (4) With nothing loaded, the frame says \"No prototype yet\" and \"Drop the prototype above to see its screens here.\"",
       "uiElement": "Screens list",
       "command": null,
       "produces": [],
@@ -3985,7 +4007,7 @@
       "feature": "f-modeling",
       "screen": "board",
       "actor": "Member",
-      "story": "An editor presses Derive model and Claude turns the loaded prototype into an outline of the app: screens, slices, events, streams and business outcomes (pass 1). Rules: (1) Pressing Derive model checks the rules below at once, then starts a background job (Oban) and records a DerivationRun (state stored: derivationId, projectId, status running|stopped|failed|done, message, startedBy, startedAt). The job calls Claude; when the answer is in, it stores the outline in a Derivation record (state stored, keyed by derivationId: app, screens, streams, outcomes, slices) and dispatches DeriveModel with the counts and slice ids. The aggregate checks the rules again. (2) Claude call: on the server, with the key in the ANTHROPIC_API_KEY setting (never a person's own key), model claude-sonnet-5-5 unless the EMBERLINE_DERIVE_MODEL setting says otherwise, through Req. The prompt is the prototype's outline prompt and Event Modeling rules, kept in priv/prompts/derive_outline.txt. (3) What Claude receives: HTML files and split pages as text, screenshots as images (the first 20 by name; more are left out with a note). While the prototype is split, only its pages are sent. If the text to send is over 240,000 bytes, the derive stops with the too-large error; reading a prototype in parts comes later. The existing slices are sent too, so Claude reuses their ids and names. (4) Errors, checked in this order: no such project; not an editor; nothing loaded; stack not in the list; too large; then, from the job, Claude unreachable (rate limited, timed out, or a 5xx) and an answer that can't be read or has no slices. (5) Stack: the project's stack from ProjectCreated, or Other when it has none. (6) Deriving again: the new outline replaces the earlier one. create-derived-slices adds only slices that don't exist yet: two slices are the same when they have the same id, or else the same name (ignoring case) on the same screen. Nothing is deleted: earlier slices missing from the new outline are listed in notInNewOutline and named in the done sentence. (7) Board sentences, from the DerivationRun: while running \"Claude is reading <n> file(s) and mapping screens, slices and events. This takes a minute or two.\" (\"<n> page(s)\" when split; singular for 1) with a Stop button; after Stop \"Stopped.\"; when done \"Mapped <s> screen(s) into <n> slice(s).\", plus \"<k> slice(s) from before aren't in the new model: review them on the board.\" when notInNewOutline isn't empty. Pass 2 (fields and scenarios) is the separate slice detail-derived-slices.",
+      "story": "An editor presses Derive model and Claude turns the loaded prototype into an outline of the app: screens, slices, events, streams and business outcomes (pass 1). Rules: (1) Pressing Derive model checks the rules below at once, then starts a background job (Oban) and records a DerivationRun (state stored: derivationId, projectId, status running|stopped|failed|done, message, startedBy, startedAt). The job calls Claude; when the answer is in, it stores the outline in a Derivation record (state stored, keyed by derivationId: app, screens, streams, outcomes, slices) and dispatches DeriveModel with the counts and slice ids. The aggregate checks the rules again. (2) Claude call: on the server, with the key in the ANTHROPIC_API_KEY setting (never a person's own key), model claude-sonnet-5-5 unless the EMBERLINE_DERIVE_MODEL setting says otherwise, through Req. The prompt is the prototype's outline prompt and Event Modeling rules, kept in priv/prompts/derive_outline.txt. (3) What Claude receives: HTML files and split pages as text, screenshots as images (the first 20 by name; more are left out with a note). While the prototype is split, only its pages are sent. If the text to send is over 240,000 bytes, the derive stops with the too-large error; reading a prototype in parts comes later. The existing slices are sent too, so Claude reuses their ids and names. (4) Errors, checked in this order: no such project; not an editor; nothing loaded; stack not in the list; too large; then, from the job, Claude unreachable (rate limited, timed out, or a 5xx) and an answer that can't be read, has no slices, or has a slice with an empty name or an unknown pattern (the outline is rejected whole, before it's stored). (5) Stack: the project's stack from ProjectCreated, or Other when it has none. (6) Deriving again: the new outline replaces the earlier one. create-derived-slices adds only slices that don't exist yet: two slices are the same when they have the same id, or else the same name (ignoring case) on the same screen. Nothing is deleted: earlier slices missing from the new outline are listed in notInNewOutline and named in the done sentence. (7) Board sentences, from the DerivationRun: while running \"Claude is reading <n> file(s) and mapping screens, slices and events. This takes a minute or two.\" (\"<n> page(s)\" when split; singular for 1) with a Stop button; after Stop \"Stopped.\"; when done \"Mapped <s> screen(s) into <n> slice(s).\", plus \"<k> slice(s) from before aren't in the new model: review them on the board.\" when notInNewOutline isn't empty. If the project reaches its safety ceiling while slices are added, create-derived-slices adds \"<n> slices weren't added: this project is at its limit of 2,000 slices.\" Pass 2 (fields and scenarios) is the separate slice detail-derived-slices. (8) Safety net for one derive: an outline with more than 400 slices (the EMBERLINE_MAX_DERIVE_SLICES setting) is rejected before it's stored, as a sign Claude has gone wrong or the prototype is too big for one go: \"Claude returned 512 slices, more than one derive can take (400). Derive one feature at a time.\"",
       "uiElement": "Derive model button",
       "command": {
         "name": "DeriveModel",
@@ -4115,7 +4137,7 @@
           "given": [
             "ProjectCreated(projectId: p-1, stack: Elixir: Phoenix LiveView + Ash + AshCommanded)",
             "PrototypeLoaded(prototypeId: pr-1, projectId: p-1, fileNames: [board.html, home.html, settings.html], fileCount: 3, interactive: false)",
-            "Claude answers with text that isn't the outline, or an outline with no slices"
+            "Claude answers with text that isn't the outline, an outline with no slices, or a slice with an empty name or an unknown pattern"
           ],
           "when": "the job reads the answer",
           "then": [
@@ -4211,6 +4233,22 @@
           "then": [
             "error: Only editors can derive the model."
           ]
+        },
+        {
+          "kind": "error",
+          "title": "An outline that's too big",
+          "given": [
+            "ProjectCreated(projectId: p-1)",
+            "PrototypeLoaded(prototypeId: pr-1, projectId: p-1, fileCount: 60)",
+            "Claude answers with 512 slices",
+            "EMBERLINE_MAX_DERIVE_SLICES = 400"
+          ],
+          "when": "the job reads the answer",
+          "then": [
+            "DerivationRun d-1: failed",
+            "error: Claude returned 512 slices, more than one derive can take (400). Derive one feature at a time.",
+            "no events recorded"
+          ]
         }
       ]
     },
@@ -4223,16 +4261,24 @@
       "feature": "f-modeling",
       "screen": "board",
       "actor": "Automation",
-      "story": "After a derive, each slice in the outline gets its own history: the app adds them to the board one by one, in the outline's order. Rules: the slice details (name, pattern, screen, command, events read and produced, read model, projection, position) come from the Derivation record stored under the derivationId. A slice that already exists (same id, or else the same name ignoring case on the same screen) isn't added again. A feature derive adds its slices to that feature.",
+      "story": "After a derive, each slice in the outline gets its own history: the app adds them to the board one by one, in the outline's order. Rules: (1) Every value SliceAdded records arrives in AddSlice: sliceId, position, name, pattern, screenId, featureId, produces, reads, commandName, readModelName, projectionName; the automation takes them from the Derivation record stored under the derivationId. (2) projectionName is empty for derived slices (the outline has no projections); pass 2 (SliceDetailed.projection) fills it in. (3) SlicesToCreateProjection also keeps AddedSlices (projectId, sliceId, name, screenId), filled from every SliceAdded, including slices added by hand. On ModelDerived it lists only the outline's slices whose id, or whose name (ignoring case) and screen, isn't in AddedSlices. (4) AddSlice for a slice id that already has a history records nothing and isn't an error, so a restart part way through doesn't add a slice twice. (5) For a whole-model derive, featureId is empty. Feature derives (FeatureDerived) are handled when derive-feature is built, in the Features & boundaries feature. (6) AddSlice follows the same rules whether a person or this automation sends it (see add-slice). There's no working limit on slices. If the project reaches the safety ceiling (EMBERLINE_MAX_SLICES, default 2,000), AddSlice refuses, the automation stops adding, and the derive status says \"<n> slices weren't added: this project is at its limit of 2,000 slices.\" (\"1 slice wasn't added: …\" for one). An outline slice with an empty name or an unknown pattern never reaches AddSlice: derive-model rejects the whole outline before it's stored. (7) If the project is deleted (or doesn't exist) while slices are being added, AddSlice records nothing and the rest of the list is dropped, with no message, since the board is gone.",
       "uiElement": "",
       "command": {
         "name": "AddSlice",
         "fields": [
+          "sliceId: uuid",
           "projectId: uuid",
           "name: string",
           "pattern: enum(state_change|state_view|automation)",
           "screenId: string",
-          "afterSliceId: uuid"
+          "position: integer",
+          "afterSliceId: uuid",
+          "featureId: uuid",
+          "produces: array(string)",
+          "reads: array(string)",
+          "commandName: string",
+          "readModelName: string",
+          "projectionName: string"
         ]
       },
       "produces": [
@@ -4246,8 +4292,8 @@
             "position: integer",
             "projectId: uuid",
             "featureId: uuid",
-            "produces: list",
-            "reads: list",
+            "produces: array(string)",
+            "reads: array(string)",
             "commandName: string",
             "readModelName: string",
             "projectionName: string"
@@ -4290,11 +4336,15 @@
         "handles": [
           {
             "event": "ModelDerived",
-            "does": "list every slice id in sliceIds that has no slice yet, with its details from the stored outline"
+            "does": "list each outline slice from the stored Derivation whose id, or whose name (ignoring case) and screen, isn't in AddedSlices, with its details and position"
           },
           {
             "event": "SliceAdded",
-            "does": "take the added slice off the list"
+            "does": "add the slice to AddedSlices (sliceId, name, screenId) and take it off the list"
+          },
+          {
+            "event": "FeatureDerived",
+            "does": "(built with derive-feature) list the feature's new slices with featureId set"
           }
         ]
       },
@@ -4308,7 +4358,11 @@
           "pattern: enum(state_change|state_view|automation)",
           "screenId: string",
           "position: integer",
-          "featureId: uuid"
+          "featureId: uuid",
+          "produces: array(string)",
+          "reads: array(string)",
+          "commandName: string",
+          "readModelName: string"
         ]
       },
       "specs": [
@@ -4317,12 +4371,13 @@
           "title": "Each derived slice is added in order",
           "given": [
             "ModelDerived(projectId: p-1, derivationId: d-1, sliceCount: 2, sliceIds: [s-1, s-2])",
-            "the outline d-1 has s-1 \"Create account\" (state_change, screen signup, RegisterAccount → AccountRegistered) and s-2 \"Pending verification\" (state_view, screen verify)"
+            "the outline d-1 has s-1 \"Create account\" (state_change, screen signup, command RegisterAccount, produces AccountRegistered) and s-2 \"Pending verification\" (state_view, screen verify, read model PendingVerification, reads AccountRegistered)"
           ],
           "when": "SlicesToCreate(projectId: p-1) has s-1 and s-2",
           "then": [
-            "SliceAdded(sliceId: s-1, projectId: p-1, name: Create account, pattern: state_change, screenId: signup, position: 1, commandName: RegisterAccount, produces: [AccountRegistered], reads: [])",
-            "SliceAdded(sliceId: s-2, projectId: p-1, name: Pending verification, pattern: state_view, screenId: verify, position: 2, readModelName: PendingVerification, reads: [AccountRegistered])"
+            "AddSlice(sliceId: s-1, projectId: p-1, name: Create account, pattern: state_change, screenId: signup, position: 1, featureId: , produces: [AccountRegistered], reads: [], commandName: RegisterAccount, readModelName: , projectionName: )",
+            "SliceAdded(sliceId: s-1, projectId: p-1, name: Create account, pattern: state_change, screenId: signup, position: 1, commandName: RegisterAccount, produces: [AccountRegistered], reads: [], projectionName: )",
+            "SliceAdded(sliceId: s-2, projectId: p-1, name: Pending verification, pattern: state_view, screenId: verify, position: 2, readModelName: PendingVerification, reads: [AccountRegistered], projectionName: )"
           ]
         },
         {
@@ -4351,7 +4406,7 @@
         },
         {
           "kind": "success",
-          "title": "A feature derive adds its new slices to that feature",
+          "title": "A feature derive adds its new slices to that feature (built with derive-feature)",
           "given": [
             "FeatureDerived(featureId: f-2, derivationId: d-7, sliceIds: [s-40, s-41])"
           ],
@@ -4365,13 +4420,54 @@
           "kind": "edge",
           "title": "A slice that already exists by name isn't added twice",
           "given": [
-            "SliceAdded(sliceId: s-9, projectId: p-1, name: Create account, screenId: signup)",
+            "SliceAdded(sliceId: s-9, projectId: p-1, name: Create account, screenId: signup) · added by hand, so it's in AddedSlices",
             "ModelDerived(projectId: p-1, derivationId: d-2, sliceIds: [s-1])",
             "the outline d-2 has s-1 \"create account\" on signup"
           ],
           "when": "SlicesToCreate(projectId: p-1) is empty",
           "then": [
             "no commands are sent: s-1 is the existing s-9"
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "The same slice id arrives twice",
+          "given": [
+            "SliceAdded(sliceId: s-1, projectId: p-1, name: Create account)"
+          ],
+          "when": "AddSlice(sliceId: s-1, projectId: p-1, name: Create account, pattern: state_change, screenId: signup, position: 1)",
+          "then": [
+            "nothing new: s-1 already exists; no error"
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "The project is deleted while slices are being added",
+          "given": [
+            "ModelDerived(projectId: p-1, derivationId: d-1, sliceIds: [s-1, s-2, s-3])",
+            "SliceAdded(sliceId: s-1, projectId: p-1)",
+            "ProjectDeleted(projectId: p-1)"
+          ],
+          "when": "SlicesToCreate(projectId: p-1) has s-2 and s-3",
+          "then": [
+            "AddSlice for s-2 records nothing; s-3 is dropped",
+            "no message: the board is gone"
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "The project reaches the safety limit part way",
+          "given": [
+            "the project has 1,998 slices",
+            "EMBERLINE_MAX_SLICES = 2000",
+            "ModelDerived(projectId: p-1, derivationId: d-3, sliceIds: [s-1, s-2, s-3, s-4, s-5])"
+          ],
+          "when": "SlicesToCreate(projectId: p-1) has s-1 … s-5",
+          "then": [
+            "SliceAdded(sliceId: s-1)",
+            "SliceAdded(sliceId: s-2)",
+            "AddSlice for s-3 is refused; s-3, s-4 and s-5 aren't added",
+            "the derive status says: 3 slices weren't added: this project is at its limit of 2,000 slices."
           ]
         }
       ]
@@ -4434,8 +4530,8 @@
             "position: integer",
             "projectId: uuid",
             "featureId: uuid",
-            "produces: list",
-            "reads: list",
+            "produces: array(string)",
+            "reads: array(string)",
             "commandName: string",
             "readModelName: string",
             "projectionName: string"
@@ -4562,7 +4658,7 @@
       "feature": "f-features",
       "screen": "board",
       "actor": "Editor",
-      "story": "An editor asks the builder to split the app into features, so each team can model, review and build its own part of one shared model.",
+      "story": "An editor asks the builder to split the app into features, so each team can model, review and build its own part of one shared model. A project that doesn't exist or was deleted gives \"That project doesn't exist.\"",
       "uiElement": "Identify features button",
       "command": {
         "name": "IdentifyFeatures",
@@ -4647,6 +4743,15 @@
           "then": [
             "FeaturesProposed(features: s-9 is proposed in Billing)"
           ]
+        },
+        {
+          "kind": "error",
+          "title": "No such project",
+          "given": [],
+          "when": "IdentifyFeatures(projectId: p-404, …)",
+          "then": [
+            "error: That project doesn't exist."
+          ]
         }
       ]
     },
@@ -4659,7 +4764,7 @@
       "feature": "f-features",
       "screen": "features",
       "actor": "Editor",
-      "story": "The editor reviews the proposal: renames features, merges the ones one team would own, sets owners, then uses them.",
+      "story": "The editor reviews the proposal: renames features, merges the ones one team would own, sets owners, then uses them. A project that doesn't exist or was deleted gives \"That project doesn't exist.\"",
       "uiElement": "Use these features button",
       "command": {
         "name": "ConfirmFeatures",
@@ -4752,6 +4857,15 @@
           "when": "ConfirmFeatures(projectId: p-1, proposalId: fp-1, confirmedBy: u-1)",
           "then": [
             "error: There's a newer proposal. Review that one."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "No such project",
+          "given": [],
+          "when": "ConfirmFeatures(projectId: p-404, …)",
+          "then": [
+            "error: That project doesn't exist."
           ]
         }
       ]
@@ -4874,7 +4988,7 @@
       "feature": "f-features",
       "screen": "features",
       "actor": "Editor",
-      "story": "An editor adds a feature by hand, for a part of the app the proposal missed or that is still to come.",
+      "story": "An editor adds a feature by hand, for a part of the app the proposal missed or that is still to come. A project that doesn't exist or was deleted gives \"That project doesn't exist.\"",
       "uiElement": "+ Add feature button",
       "command": {
         "name": "AddFeature",
@@ -4934,6 +5048,15 @@
           "when": "AddFeature(featureId: f-9, projectId: p-1, name:, definedBy: u-1)",
           "then": [
             "error: Give the feature a name."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "No such project",
+          "given": [],
+          "when": "AddFeature(projectId: p-404, …)",
+          "then": [
+            "error: That project doesn't exist."
           ]
         }
       ]
@@ -5463,7 +5586,7 @@
       "feature": "f-features",
       "screen": "board",
       "actor": "Editor",
-      "story": "An editor derives only their feature from its prototype pages. Names already in the model are reused and other features' slices are left exactly as they were.",
+      "story": "An editor derives only their feature from its prototype pages. Names already in the model are reused and other features' slices are left exactly as they were. A project that doesn't exist or was deleted gives \"That project doesn't exist.\"",
       "uiElement": "Derive this feature button",
       "command": {
         "name": "DeriveFeature",
@@ -5551,6 +5674,15 @@
           "then": [
             "Billing slices read AccountRegistered; no second event for the same fact"
           ]
+        },
+        {
+          "kind": "error",
+          "title": "No such project",
+          "given": [],
+          "when": "DeriveFeature(projectId: p-404, …)",
+          "then": [
+            "error: That project doesn't exist."
+          ]
         }
       ]
     },
@@ -5563,7 +5695,7 @@
       "feature": "f-features",
       "screen": "board",
       "actor": "Editor",
-      "story": "A feature needs a fact another feature will record but hasn't been modelled yet. The editor names that feature as the owner, so the event becomes part of their contract.",
+      "story": "A feature needs a fact another feature will record but hasn't been modelled yet. The editor names that feature as the owner, so the event becomes part of their contract. A project that doesn't exist or was deleted gives \"That project doesn't exist.\"",
       "uiElement": "Expected from menu in the boundary panel",
       "command": {
         "name": "ExpectEventFromFeature",
@@ -5646,6 +5778,15 @@
           "when": "query FeatureBoundary(featureId: f-2)",
           "then": [
             "PlanChanged is no longer listed as expected"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "No such project",
+          "given": [],
+          "when": "ExpectEventFromFeature(projectId: p-404, …)",
+          "then": [
+            "error: That project doesn't exist."
           ]
         }
       ]
@@ -5741,8 +5882,8 @@
             "position: integer",
             "projectId: uuid",
             "featureId: uuid",
-            "produces: list",
-            "reads: list",
+            "produces: array(string)",
+            "reads: array(string)",
             "commandName: string",
             "readModelName: string",
             "projectionName: string"
@@ -5898,8 +6039,8 @@
             "position: integer",
             "projectId: uuid",
             "featureId: uuid",
-            "produces: list",
-            "reads: list",
+            "produces: array(string)",
+            "reads: array(string)",
             "commandName: string",
             "readModelName: string",
             "projectionName: string"
@@ -6157,7 +6298,7 @@
       "feature": "f-modeling",
       "screen": "board",
       "actor": "Member",
-      "story": "Team members see the whole event model laid out as a timeline of steps, so they can follow how the app works from left to right.",
+      "story": "Team members see the whole event model laid out as a timeline of steps, so they can follow how the app works from left to right. Large boards: from 300 slices (the EMBERLINE_LARGE_BOARD setting) the board shows a notice, and nothing is refused: \"This board has 312 slices. Pick a feature above to work on part of it.\" If the project has no features yet, it says \"This board has 312 slices. Identify features to work on part of it.\"",
       "uiElement": "Event model board",
       "command": null,
       "produces": [],
@@ -6189,8 +6330,8 @@
             "position: integer",
             "projectId: uuid",
             "featureId: uuid",
-            "produces: list",
-            "reads: list",
+            "produces: array(string)",
+            "reads: array(string)",
             "commandName: string",
             "readModelName: string",
             "projectionName: string"
@@ -6397,7 +6538,8 @@
           "sliceCount: integer",
           "scenarioCount: integer",
           "status: enum(planned|in_progress|done)",
-          "features: list"
+          "features: list",
+          "largeBoard: boolean"
         ]
       },
       "specs": [
@@ -6474,6 +6616,45 @@
           "then": [
             "only s-1 is shown"
           ]
+        },
+        {
+          "kind": "edge",
+          "title": "A large board shows a notice",
+          "given": [
+            "SliceAdded × 312 in p-1",
+            "FeatureDefined × 6 in p-1",
+            "EMBERLINE_LARGE_BOARD = 300"
+          ],
+          "when": "query EventModelBoard(projectId: p-1)",
+          "then": [
+            "EventModelBoard(sliceCount: 312, largeBoard: true)",
+            "the board says: This board has 312 slices. Pick a feature above to work on part of it."
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "A large board with no features yet",
+          "given": [
+            "SliceAdded × 312 in p-1",
+            "EMBERLINE_LARGE_BOARD = 300"
+          ],
+          "when": "query EventModelBoard(projectId: p-1)",
+          "then": [
+            "EventModelBoard(sliceCount: 312, largeBoard: true)",
+            "the board says: This board has 312 slices. Identify features to work on part of it."
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "Just under the notice",
+          "given": [
+            "SliceAdded × 299 in p-1"
+          ],
+          "when": "query EventModelBoard(projectId: p-1)",
+          "then": [
+            "EventModelBoard(sliceCount: 299, largeBoard: false)",
+            "no notice"
+          ]
         }
       ]
     },
@@ -6486,16 +6667,24 @@
       "feature": "f-modeling",
       "screen": "board",
       "actor": "Member",
-      "story": "An editor adds a new step to the board so a missing piece of the app can be described.",
+      "story": "An editor adds a new step to the board so a missing piece of the app can be described. Rules: the same AddSlice command as derived slices; a slice added by hand gives its sliceId, name, pattern, screenId and afterSliceId, and leaves featureId, produces, reads and the names empty (they're filled in later by editing). Its position is one after afterSliceId, or last when afterSliceId is empty. AddSlice for a slice id that already exists records nothing. A project that doesn't exist or was deleted gives \"That project doesn't exist.\" The same rules apply when the create-derived-slices automation sends AddSlice. Safety net: a project can hold up to the EMBERLINE_MAX_SLICES setting (default 2,000 slices). It's a guard against runaway automations and bugs, not a working limit. At the ceiling, AddSlice refuses: \"This project has 2,000 slices, the most allowed. Ask your admin to raise the limit.\"",
       "uiElement": "+ Add slice button",
       "command": {
         "name": "AddSlice",
         "fields": [
+          "sliceId: uuid",
           "projectId: uuid",
           "name: string",
           "pattern: enum(state_change|state_view|automation)",
           "screenId: string",
-          "afterSliceId: uuid"
+          "position: integer",
+          "afterSliceId: uuid",
+          "featureId: uuid",
+          "produces: array(string)",
+          "reads: array(string)",
+          "commandName: string",
+          "readModelName: string",
+          "projectionName: string"
         ]
       },
       "produces": [
@@ -6509,8 +6698,8 @@
             "position: integer",
             "projectId: uuid",
             "featureId: uuid",
-            "produces: list",
-            "reads: list",
+            "produces: array(string)",
+            "reads: array(string)",
             "commandName: string",
             "readModelName: string",
             "projectionName: string"
@@ -6527,7 +6716,7 @@
           "given": [
             "ModelDerived(sliceCount: 2)"
           ],
-          "when": "AddSlice(projectId: p-1, name: Archive project, pattern: state_change, afterSliceId: s-1)",
+          "when": "AddSlice(sliceId: s-new, projectId: p-1, name: Archive project, pattern: state_change, afterSliceId: s-1)",
           "then": [
             "SliceAdded(name: Archive project, position: 2)"
           ]
@@ -6538,7 +6727,7 @@
           "given": [
             "ModelDerived(sliceCount: 2)"
           ],
-          "when": "AddSlice(projectId: p-1, name:)",
+          "when": "AddSlice(sliceId: s-new, projectId: p-1, name:)",
           "then": [
             "error: Give the slice a name."
           ]
@@ -6549,29 +6738,39 @@
           "given": [
             "ModelDerived(sliceCount: 2)"
           ],
-          "when": "AddSlice(projectId: p-1, name: Archive, pattern: batch)",
+          "when": "AddSlice(sliceId: s-new, projectId: p-1, name: Archive, pattern: batch)",
           "then": [
             "error: Pick a pattern: state change, state view or automation."
-          ]
-        },
-        {
-          "kind": "error",
-          "title": "Board is at the 150 slice limit",
-          "given": [
-            "ModelDerived(sliceCount: 150)"
-          ],
-          "when": "AddSlice(projectId: p-1, name: One more)",
-          "then": [
-            "error: This board has 150 slices, the most it can hold. Split the work into features or another project."
           ]
         },
         {
           "kind": "edge",
           "title": "First slice on an empty board",
           "given": [],
-          "when": "AddSlice(projectId: p-1, name: Create account, pattern: state_change)",
+          "when": "AddSlice(sliceId: s-new, projectId: p-1, name: Create account, pattern: state_change)",
           "then": [
             "SliceAdded(name: Create account, position: 1)"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "No such project",
+          "given": [],
+          "when": "AddSlice(projectId: p-404, …)",
+          "then": [
+            "error: That project doesn't exist."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Project at the safety limit",
+          "given": [
+            "the project has 2,000 slices",
+            "EMBERLINE_MAX_SLICES = 2000"
+          ],
+          "when": "AddSlice(sliceId: s-new, projectId: p-1, name: One more, pattern: state_change)",
+          "then": [
+            "error: This project has 2,000 slices, the most allowed. Ask your admin to raise the limit."
           ]
         }
       ]
@@ -6585,7 +6784,7 @@
       "feature": "f-modeling",
       "screen": "board",
       "actor": "Member",
-      "story": "An editor opens a model saved earlier from a file, replacing what is on the board.",
+      "story": "An editor opens a model saved earlier from a file, replacing what is on the board. A project that doesn't exist or was deleted gives \"That project doesn't exist.\"",
       "uiElement": "Import JSON file input",
       "command": {
         "name": "ImportModel",
@@ -6659,6 +6858,15 @@
           "then": [
             "ModelImported(sliceCount: 7)"
           ]
+        },
+        {
+          "kind": "error",
+          "title": "No such project",
+          "given": [],
+          "when": "ImportModel(projectId: p-404, …)",
+          "then": [
+            "error: That project doesn't exist."
+          ]
         }
       ]
     },
@@ -6671,7 +6879,7 @@
       "feature": "f-modeling",
       "screen": "board",
       "actor": "Member",
-      "story": "A team member saves the model as a file or picture so it can be shared or opened in another tool.",
+      "story": "A team member saves the model as a file or picture so it can be shared or opened in another tool. A project that doesn't exist or was deleted gives \"That project doesn't exist.\"",
       "uiElement": "JSON button",
       "command": {
         "name": "ExportModel",
@@ -6749,6 +6957,15 @@
           "then": [
             "ModelExported(format: json)"
           ]
+        },
+        {
+          "kind": "error",
+          "title": "No such project",
+          "given": [],
+          "when": "ExportModel(projectId: p-404, …)",
+          "then": [
+            "error: That project doesn't exist."
+          ]
         }
       ]
     },
@@ -6793,8 +7010,8 @@
             "position: integer",
             "projectId: uuid",
             "featureId: uuid",
-            "produces: list",
-            "reads: list",
+            "produces: array(string)",
+            "reads: array(string)",
             "commandName: string",
             "readModelName: string",
             "projectionName: string"
@@ -7015,8 +7232,8 @@
             "position: integer",
             "projectId: uuid",
             "featureId: uuid",
-            "produces: list",
-            "reads: list",
+            "produces: array(string)",
+            "reads: array(string)",
             "commandName: string",
             "readModelName: string",
             "projectionName: string"
@@ -7348,8 +7565,8 @@
             "position: integer",
             "projectId: uuid",
             "featureId: uuid",
-            "produces: list",
-            "reads: list",
+            "produces: array(string)",
+            "reads: array(string)",
             "commandName: string",
             "readModelName: string",
             "projectionName: string"
@@ -9611,7 +9828,7 @@
       "feature": "f-workspace",
       "screen": "workspace-general",
       "actor": "Admin",
-      "story": "The workspace owner, or an admin once member roles exist, changes the workspace's name, web address and default stack.",
+      "story": "The workspace owner, or an admin once member roles exist, changes the workspace's name, web address and default stack. A workspace that doesn't exist or was deleted gives \"That workspace doesn't exist.\"",
       "uiElement": "Save button",
       "command": {
         "name": "SaveWorkspaceDetails",
@@ -9740,6 +9957,15 @@
           "then": [
             "WorkspaceDetailsSaved(workspaceId: w-1, name: Acme 2, slug: acme, defaultStack: Other, savedBy: u-7)"
           ]
+        },
+        {
+          "kind": "error",
+          "title": "No such workspace",
+          "given": [],
+          "when": "SaveWorkspaceDetails(workspaceId: w-404, …)",
+          "then": [
+            "error: That workspace doesn't exist."
+          ]
         }
       ]
     },
@@ -9752,7 +9978,7 @@
       "feature": "f-workspace",
       "screen": "workspace-general",
       "actor": "Admin",
-      "story": "An owner or admin chooses which company email domains may join the workspace without an invite, and turns that on or off.",
+      "story": "An owner or admin chooses which company email domains may join the workspace without an invite, and turns that on or off. A workspace that doesn't exist or was deleted gives \"That workspace doesn't exist.\"",
       "uiElement": "Joining by email domain form",
       "command": {
         "name": "SaveDomains",
@@ -9843,6 +10069,15 @@
           "then": [
             "error: acme.dev is already used by another workspace."
           ]
+        },
+        {
+          "kind": "error",
+          "title": "No such workspace",
+          "given": [],
+          "when": "SaveDomains(workspaceId: w-404, …)",
+          "then": [
+            "error: That workspace doesn't exist."
+          ]
         }
       ]
     },
@@ -9855,7 +10090,7 @@
       "feature": "f-workspace",
       "screen": "workspace-general",
       "actor": "Owner",
-      "story": "The owner hands the workspace to another member and becomes an admin themselves.",
+      "story": "The owner hands the workspace to another member and becomes an admin themselves. A workspace that doesn't exist or was deleted gives \"That workspace doesn't exist.\"",
       "uiElement": "Transfer ownership button",
       "command": {
         "name": "TransferOwnership",
@@ -9949,6 +10184,15 @@
             "OwnershipTransferred(workspaceId: w-1, previousOwnerAccountId: a-2, newOwnerAccountId: a-1)",
             "MemberRoleChanged(workspaceId: w-1, accountId: a-1, role: owner)",
             "MemberRoleChanged(workspaceId: w-1, accountId: a-2, role: admin)"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "No such workspace",
+          "given": [],
+          "when": "TransferOwnership(workspaceId: w-404, …)",
+          "then": [
+            "error: That workspace doesn't exist."
           ]
         }
       ]
@@ -10269,13 +10513,13 @@
       "feature": "f-workspace",
       "screen": "workspace-members",
       "actor": "Admin",
-      "story": "An admin enters one or more email addresses and a role so that teammates are invited to join the workspace.",
+      "story": "An owner or admin enters one or more email addresses and a role, so teammates are invited to join the workspace. Rules, shared by the Members page and the Welcome page (both send InviteMembers): (1) Addresses are separated by commas, spaces, semicolons or new lines, then trimmed and lowercased; repeats are collapsed. At most 50 at a time: \"Invite up to 50 people at a time.\" (2) Any invalid address stops the whole batch, nothing is sent, and the error names them: \"x isn't a valid email.\" / \"x and y aren't valid emails.\" (three or more: \"x, y and z\"). (3) Addresses already in the workspace (the owner, or anyone who joined) are skipped. If every address is skipped: \"x is already in the workspace.\" / \"x and y are already in the workspace.\"; otherwise the skipped ones are named after the success sentence. (4) An address with a pending invite is invited again: same membershipId, the new role, a new invitedAt (the 7 days restart) and a new email; the old link keeps working until the invite expires. (5) Each invite emails the person (Swoosh): subject \"<inviter's name> invited you to <workspace> on Emberline\", a line saying the role, and a link /invite/<token>. The token is signed for the membershipId (never the bare id) and lasts as long as the invite, 7 days; view-invite and accept-invite read it. (6) Success: \"Sent 2 invites. Invites expire after 7 days.\" (\"Sent 1 invite.\" for one). (7) Who can invite: owners and admins: \"Only owners and admins can invite people.\" Until accept-invite and roles exist, that's only the owner. (8) No seat check for now: seats wait for billing. (9) MemberInvited.projectId is empty for workspace invites; it's set only when the invite comes from a project's Share dialog (share-invite). A workspace that doesn't exist or was deleted gives \"That workspace doesn't exist.\"",
       "uiElement": "Invite people form",
       "command": {
         "name": "InviteMembers",
         "fields": [
           "workspaceId: uuid",
-          "emails: list of string",
+          "emails: array(string)",
           "role: enum(Admin|Editor|Commenter|Viewer)",
           "invitedBy: uuid"
         ]
@@ -10302,19 +10546,48 @@
           "kind": "success",
           "title": "Invite two people",
           "given": [
-            "WorkspaceCreated(workspaceId: w-1)"
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)"
           ],
           "when": "InviteMembers(workspaceId: w-1, emails: [a@acme.dev, b@acme.dev], role: Editor, invitedBy: u-1)",
           "then": [
-            "MemberInvited(email: a@acme.dev, role: Editor)",
-            "MemberInvited(email: b@acme.dev, role: Editor)"
+            "MemberInvited(membershipId: m-1, workspaceId: w-1, email: a@acme.dev, role: Editor, invitedBy: u-1, projectId: )",
+            "MemberInvited(membershipId: m-2, workspaceId: w-1, email: b@acme.dev, role: Editor, invitedBy: u-1, projectId: )",
+            "the board says: Sent 2 invites. Invites expire after 7 days."
+          ]
+        },
+        {
+          "kind": "success",
+          "title": "The invite email",
+          "given": [
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)",
+            "AccountRegistered(accountId: u-1, fullName: Alex Rivera)"
+          ],
+          "when": "InviteMembers(workspaceId: w-1, emails: [nia@acme.dev], role: Editor, invitedBy: u-1)",
+          "then": [
+            "MemberInvited(membershipId: m-1, workspaceId: w-1, email: nia@acme.dev, role: Editor, invitedBy: u-1, projectId: )",
+            "nia@acme.dev gets an email: subject \"Alex Rivera invited you to Acme on Emberline\", \"You'll join as an Editor.\", and a link /invite/<signed token for m-1>",
+            "the board says: Sent 1 invite. Invites expire after 7 days."
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "Addresses typed with commas, spaces and new lines",
+          "given": [
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)"
+          ],
+          "when": "InviteMembers(workspaceId: w-1, emails: \"A@acme.dev, b@acme.dev  b@acme.dev\\nc@acme.dev\", role: Viewer, invitedBy: u-1)",
+          "then": [
+            "MemberInvited(membershipId: m-1, workspaceId: w-1, email: a@acme.dev, role: Viewer, invitedBy: u-1, projectId: )",
+            "MemberInvited(membershipId: m-2, workspaceId: w-1, email: b@acme.dev, role: Viewer, invitedBy: u-1, projectId: )",
+            "MemberInvited(membershipId: m-3, workspaceId: w-1, email: c@acme.dev, role: Viewer, invitedBy: u-1, projectId: )",
+            "the repeated b@acme.dev is sent once; Sent 3 invites. Invites expire after 7 days."
           ]
         },
         {
           "kind": "error",
           "title": "No email entered",
           "given": [
-            "WorkspaceCreated(workspaceId: w-1)"
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)"
           ],
           "when": "InviteMembers(workspaceId: w-1, emails: [], role: Editor, invitedBy: u-1)",
           "then": [
@@ -10325,20 +10598,67 @@
           "kind": "error",
           "title": "Invalid email",
           "given": [
-            "WorkspaceCreated(workspaceId: w-1)"
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)"
           ],
-          "when": "InviteMembers(emails: [not-an-email], role: Editor)",
+          "when": "InviteMembers(workspaceId: w-1, emails: [not-an-email], role: Editor, invitedBy: u-1)",
           "then": [
             "error: not-an-email isn't a valid email."
           ]
         },
         {
           "kind": "error",
-          "title": "Already a member",
+          "title": "One bad address stops the batch",
           "given": [
-            "InviteAccepted(email: nia@acme.dev)"
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)"
           ],
-          "when": "InviteMembers(emails: [nia@acme.dev], role: Editor)",
+          "when": "InviteMembers(workspaceId: w-1, emails: [a@acme.dev, x, y@], role: Editor, invitedBy: u-1)",
+          "then": [
+            "error: x and y@ aren't valid emails.",
+            "no invites are sent"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Too many at once",
+          "given": [
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)"
+          ],
+          "when": "InviteMembers(workspaceId: w-1, emails: [51 addresses], role: Editor, invitedBy: u-1)",
+          "then": [
+            "error: Invite up to 50 people at a time."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Inviting the owner",
+          "given": [
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)"
+          ],
+          "when": "InviteMembers(workspaceId: w-1, emails: [alex@acme.dev], role: Editor, invitedBy: u-1)",
+          "then": [
+            "error: alex@acme.dev is already in the workspace."
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "A member in a batch is skipped",
+          "given": [
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)"
+          ],
+          "when": "InviteMembers(workspaceId: w-1, emails: [alex@acme.dev, nia@acme.dev], role: Editor, invitedBy: u-1)",
+          "then": [
+            "MemberInvited(membershipId: m-1, workspaceId: w-1, email: nia@acme.dev, role: Editor, invitedBy: u-1, projectId: )",
+            "the board says: Sent 1 invite. Invites expire after 7 days. alex@acme.dev is already in the workspace."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Already a member (once accept-invite exists)",
+          "given": [
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)",
+            "InviteAccepted(accountId: u-2, membershipId: m-1, email: nia@acme.dev)"
+          ],
+          "when": "InviteMembers(workspaceId: w-1, emails: [nia@acme.dev], role: Editor, invitedBy: u-1)",
           "then": [
             "error: nia@acme.dev is already in the workspace."
           ]
@@ -10347,31 +10667,45 @@
           "kind": "error",
           "title": "Not allowed to invite",
           "given": [
-            "InviteAccepted(accountId: u-2, role: Commenter)"
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)",
+            "InviteAccepted(accountId: u-2, membershipId: m-1, email: nia@acme.dev, role: Commenter)"
           ],
-          "when": "InviteMembers(emails: [a@acme.dev], role: Editor, invitedBy: u-2)",
+          "when": "InviteMembers(workspaceId: w-1, emails: [a@acme.dev], role: Editor, invitedBy: u-2)",
           "then": [
-            "error: only owners and admins can invite people"
+            "error: Only owners and admins can invite people."
           ]
         },
         {
           "kind": "edge",
           "title": "Invite the same address again",
           "given": [
-            "MemberInvited(email: a@acme.dev, role: Viewer)"
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)",
+            "MemberInvited(membershipId: m-1, workspaceId: w-1, email: a@acme.dev, role: Viewer, invitedBy: u-1, projectId: )"
           ],
-          "when": "InviteMembers(emails: [a@acme.dev], role: Editor, invitedBy: u-1)",
+          "when": "InviteMembers(workspaceId: w-1, emails: [a@acme.dev], role: Editor, invitedBy: u-1)",
           "then": [
-            "MemberInvited(email: a@acme.dev, role: Editor) replaces the earlier invite and restarts the 7 days"
+            "MemberInvited(membershipId: m-1, workspaceId: w-1, email: a@acme.dev, role: Editor, invitedBy: u-1, projectId: ) · same membershipId, new invitedAt: the 7 days restart",
+            "a new email is sent; the earlier link still works until the invite expires"
           ]
         },
         {
           "kind": "error",
           "title": "Role isn't one of the listed ones",
-          "given": [],
+          "given": [
+            "WorkspaceCreated(workspaceId: w-1, name: Acme, ownerAccountId: u-1, ownerEmail: alex@acme.dev)"
+          ],
           "when": "InviteMembers(workspaceId: w-1, emails: [nia@acme.dev], role: Superuser, invitedBy: u-1)",
           "then": [
             "error: Pick a role from the list."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "No such workspace",
+          "given": [],
+          "when": "InviteMembers(workspaceId: w-404, …)",
+          "then": [
+            "error: That workspace doesn't exist."
           ]
         }
       ]
@@ -10385,7 +10719,7 @@
       "feature": "f-workspace",
       "screen": "workspace-members",
       "actor": "Admin",
-      "story": "An admin picks a different role for a teammate so that the person can do more or less in the workspace.",
+      "story": "An admin picks a different role for a teammate so that the person can do more or less in the workspace. A workspace that doesn't exist or was deleted gives \"That workspace doesn't exist.\"",
       "uiElement": "Role select",
       "command": {
         "name": "ChangeMemberRole",
@@ -10475,6 +10809,15 @@
           "when": "ChangeMemberRole(workspaceId: w-1, membershipId: m-1, role: Superuser)",
           "then": [
             "error: Pick a role from the list."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "No such workspace",
+          "given": [],
+          "when": "ChangeMemberRole(workspaceId: w-404, …)",
+          "then": [
+            "error: That workspace doesn't exist."
           ]
         }
       ]
@@ -11198,7 +11541,7 @@
       "feature": "f-billing",
       "screen": "workspace-billing",
       "actor": "Admin",
-      "story": "The workspace owner switches the workspace to a different plan after confirming the new monthly cost.",
+      "story": "The workspace owner switches the workspace to a different plan after confirming the new monthly cost. A workspace that doesn't exist or was deleted gives \"That workspace doesn't exist.\"",
       "uiElement": "Plans buttons",
       "command": {
         "name": "ChangePlan",
@@ -11290,6 +11633,15 @@
           "then": [
             "error: Pick a plan from the list."
           ]
+        },
+        {
+          "kind": "error",
+          "title": "No such workspace",
+          "given": [],
+          "when": "ChangePlan(workspaceId: w-404, …)",
+          "then": [
+            "error: That workspace doesn't exist."
+          ]
         }
       ]
     },
@@ -11302,7 +11654,7 @@
       "feature": "f-billing",
       "screen": "workspace-billing",
       "actor": "Admin",
-      "story": "The workspace owner saves a new payment card and the email address that receives receipts.",
+      "story": "The workspace owner saves a new payment card and the email address that receives receipts. A workspace that doesn't exist or was deleted gives \"That workspace doesn't exist.\"",
       "uiElement": "Update payment button",
       "command": {
         "name": "UpdatePaymentMethod",
@@ -11370,6 +11722,15 @@
           "when": "UpdatePaymentMethod(workspaceId: w-1, paymentMethodToken: pm_mc_4444, receiptEmail: billing@acme.dev)",
           "then": [
             "PaymentMethodUpdated(workspaceId: w-1, cardBrand: Mastercard, last4: 4444, expiry: 01/30)"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "No such workspace",
+          "given": [],
+          "when": "UpdatePaymentMethod(workspaceId: w-404, …)",
+          "then": [
+            "error: That workspace doesn't exist."
           ]
         }
       ]
@@ -11532,7 +11893,7 @@
       "feature": "f-billing",
       "screen": "workspace-integrations",
       "actor": "Admin",
-      "story": "An admin connects one of the workspace's tools, such as GitHub, Slack or Miro, so the team can use it.",
+      "story": "An admin connects one of the workspace's tools, such as GitHub, Slack or Miro, so the team can use it. A workspace that doesn't exist or was deleted gives \"That workspace doesn't exist.\"",
       "uiElement": "Connect button",
       "command": {
         "name": "ConnectIntegration",
@@ -11606,6 +11967,15 @@
           "then": [
             "nothing new: already connected"
           ]
+        },
+        {
+          "kind": "error",
+          "title": "No such workspace",
+          "given": [],
+          "when": "ConnectIntegration(workspaceId: w-404, …)",
+          "then": [
+            "error: That workspace doesn't exist."
+          ]
         }
       ]
     },
@@ -11618,7 +11988,7 @@
       "feature": "f-billing",
       "screen": "workspace-integrations",
       "actor": "Admin",
-      "story": "An admin disconnects a tool from the workspace when the team no longer wants to use it.",
+      "story": "An admin disconnects a tool from the workspace when the team no longer wants to use it. A workspace that doesn't exist or was deleted gives \"That workspace doesn't exist.\"",
       "uiElement": "Disconnect button",
       "command": {
         "name": "DisconnectIntegration",
@@ -11683,6 +12053,15 @@
           "then": [
             "error: that integration isn't connected"
           ]
+        },
+        {
+          "kind": "error",
+          "title": "No such workspace",
+          "given": [],
+          "when": "DisconnectIntegration(workspaceId: w-404, …)",
+          "then": [
+            "error: That workspace doesn't exist."
+          ]
         }
       ]
     },
@@ -11695,7 +12074,7 @@
       "feature": "f-billing",
       "screen": "workspace-integrations",
       "actor": "Admin",
-      "story": "An admin on the Business plan saves the company's single sign-on details so everyone signs in through the company identity provider.",
+      "story": "An admin on the Business plan saves the company's single sign-on details so everyone signs in through the company identity provider. A workspace that doesn't exist or was deleted gives \"That workspace doesn't exist.\"",
       "uiElement": "SAML form",
       "command": {
         "name": "ConfigureSso",
@@ -11787,6 +12166,15 @@
           "when": "ConfigureSso(workspaceId: w-1, entityId: okta-2, signInUrl: https://acme.okta.com/sso2, certificate: -----BEGIN CERTIFICATE-----...)",
           "then": [
             "SsoConfigured(workspaceId: w-1, entityId: okta-2, signInUrl: https://acme.okta.com/sso2)"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "No such workspace",
+          "given": [],
+          "when": "ConfigureSso(workspaceId: w-404, …)",
+          "then": [
+            "error: That workspace doesn't exist."
           ]
         }
       ]
@@ -12198,7 +12586,7 @@
       "feature": "f-specs",
       "screen": "slice-page",
       "actor": "Editor",
-      "story": "An editor copies a slice to reuse it as the starting point for a similar one.",
+      "story": "An editor copies a slice to reuse it as the starting point for a similar one. Safety net: a project can hold up to the EMBERLINE_MAX_SLICES setting (default 2,000 slices). It's a guard against runaway automations and bugs, not a working limit. At the ceiling, AddSlice refuses: \"This project has 2,000 slices, the most allowed. Ask your admin to raise the limit.\"",
       "uiElement": "Duplicate button",
       "command": {
         "name": "DuplicateSlice",
@@ -12244,17 +12632,6 @@
           ]
         },
         {
-          "kind": "error",
-          "title": "Slice limit reached",
-          "given": [
-            "SliceAdded × 150"
-          ],
-          "when": "DuplicateSlice(sliceId: s-1, newSliceId: s-151)",
-          "then": [
-            "error: This board has 150 slices, the most it can hold. Split the work into features or another project."
-          ]
-        },
-        {
           "kind": "edge",
           "title": "Duplicate twice",
           "given": [
@@ -12264,6 +12641,18 @@
           "when": "DuplicateSlice(sliceId: s-1, newSliceId: s-3)",
           "then": [
             "SliceDuplicated(sliceId: s-3, sourceSliceId: s-1, position: 2)"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Project at the safety limit",
+          "given": [
+            "the project has 2,000 slices",
+            "EMBERLINE_MAX_SLICES = 2000"
+          ],
+          "when": "DuplicateSlice(sliceId: s-1, newSliceId: s-2001)",
+          "then": [
+            "error: This project has 2,000 slices, the most allowed. Ask your admin to raise the limit."
           ]
         }
       ]
@@ -14327,7 +14716,7 @@
       "feature": "f-workspace",
       "screen": "share",
       "actor": "Editor",
-      "story": "An editor gives someone access to the project by email with a chosen level of access, and the person is invited to the workspace if they are new.",
+      "story": "An editor gives someone access to the project by email with a chosen level of access, and the person is invited to the workspace if they are new. A project that doesn't exist or was deleted gives \"That project doesn't exist.\"",
       "uiElement": "Invite button",
       "command": {
         "name": "GrantProjectAccess",
@@ -14400,7 +14789,7 @@
           "given": [],
           "when": "GrantProjectAccess(projectId: p-1, email: a@acme.dev, role: view) by a Commenter",
           "then": [
-            "error: only editors and admins can share this project"
+            "error: Only editors and admins can share this project."
           ]
         },
         {
@@ -14422,6 +14811,15 @@
           "then": [
             "error: Pick edit, comment or view."
           ]
+        },
+        {
+          "kind": "error",
+          "title": "No such project",
+          "given": [],
+          "when": "GrantProjectAccess(projectId: p-404, …)",
+          "then": [
+            "error: That project doesn't exist."
+          ]
         }
       ]
     },
@@ -14434,7 +14832,7 @@
       "feature": "f-workspace",
       "screen": "share",
       "actor": "Editor",
-      "story": "An editor takes away someone's access to the project, or changes it, using the select next to their name.",
+      "story": "An editor takes away someone's access to the project, or changes it, using the select next to their name. A project that doesn't exist or was deleted gives \"That project doesn't exist.\"",
       "uiElement": "Remove access select",
       "command": {
         "name": "RemoveProjectAccess",
@@ -14496,6 +14894,15 @@
           "when": "RemoveProjectAccess(projectId: p-1, memberId: m-2)",
           "then": [
             "nothing new: access already removed"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "No such project",
+          "given": [],
+          "when": "RemoveProjectAccess(projectId: p-404, …)",
+          "then": [
+            "error: That project doesn't exist."
           ]
         }
       ]
@@ -16066,8 +16473,8 @@
           "position: integer",
           "projectId: uuid",
           "featureId: uuid",
-          "produces: list",
-          "reads: list",
+          "produces: array(string)",
+          "reads: array(string)",
           "commandName: string",
           "readModelName: string",
           "projectionName: string"
@@ -16098,11 +16505,19 @@
         "name": "AddSlice",
         "label": "Add slice",
         "fields": [
+          "sliceId: uuid",
           "projectId: uuid",
           "name: string",
           "pattern: enum(state_change|state_view|automation)",
           "screenId: string",
-          "afterSliceId: uuid"
+          "position: integer",
+          "afterSliceId: uuid",
+          "featureId: uuid",
+          "produces: array(string)",
+          "reads: array(string)",
+          "commandName: string",
+          "readModelName: string",
+          "projectionName: string"
         ],
         "column": 25,
         "step": 26,
@@ -16123,7 +16538,11 @@
           "pattern: enum(state_change|state_view|automation)",
           "screenId: string",
           "position: integer",
-          "featureId: uuid"
+          "featureId: uuid",
+          "produces: array(string)",
+          "reads: array(string)",
+          "commandName: string",
+          "readModelName: string"
         ],
         "column": 25,
         "step": 26,
@@ -16137,8 +16556,9 @@
         "name": "SlicesToCreateProjection",
         "label": "Slices to create projection",
         "fields": [
-          "on ModelDerived: list every slice id in sliceIds that has no slice yet, with its details from the stored outline",
-          "on SliceAdded: take the added slice off the list"
+          "on ModelDerived: list each outline slice from the stored Derivation whose id, or whose name (ignoring case) and screen, isn't in AddedSlices, with its details and position",
+          "on SliceAdded: add the slice to AddedSlices (sliceId, name, screenId) and take it off the list",
+          "on FeatureDerived: (built with derive-feature) list the feature's new slices with featureId set"
         ],
         "column": 25,
         "step": 26,
@@ -16148,11 +16568,15 @@
         "handles": [
           {
             "event": "ModelDerived",
-            "does": "list every slice id in sliceIds that has no slice yet, with its details from the stored outline"
+            "does": "list each outline slice from the stored Derivation whose id, or whose name (ignoring case) and screen, isn't in AddedSlices, with its details and position"
           },
           {
             "event": "SliceAdded",
-            "does": "take the added slice off the list"
+            "does": "add the slice to AddedSlices (sliceId, name, screenId) and take it off the list"
+          },
+          {
+            "event": "FeatureDerived",
+            "does": "(built with derive-feature) list the feature's new slices with featureId set"
           }
         ],
         "updates": "SlicesToCreate"
@@ -17224,7 +17648,8 @@
           "sliceCount: integer",
           "scenarioCount: integer",
           "status: enum(planned|in_progress|done)",
-          "features: list"
+          "features: list",
+          "largeBoard: boolean"
         ],
         "column": 42,
         "step": 43,
@@ -17326,8 +17751,8 @@
           "position: integer",
           "projectId: uuid",
           "featureId: uuid",
-          "produces: list",
-          "reads: list",
+          "produces: array(string)",
+          "reads: array(string)",
           "commandName: string",
           "readModelName: string",
           "projectionName: string"
@@ -17358,11 +17783,19 @@
         "name": "AddSlice",
         "label": "Add slice",
         "fields": [
+          "sliceId: uuid",
           "projectId: uuid",
           "name: string",
           "pattern: enum(state_change|state_view|automation)",
           "screenId: string",
-          "afterSliceId: uuid"
+          "position: integer",
+          "afterSliceId: uuid",
+          "featureId: uuid",
+          "produces: array(string)",
+          "reads: array(string)",
+          "commandName: string",
+          "readModelName: string",
+          "projectionName: string"
         ],
         "column": 43,
         "step": 44,
@@ -19241,7 +19674,7 @@
         "label": "Invite members",
         "fields": [
           "workspaceId: uuid",
-          "emails: list of string",
+          "emails: array(string)",
           "role: enum(Admin|Editor|Commenter|Viewer)",
           "invitedBy: uuid"
         ],
