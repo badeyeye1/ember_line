@@ -2,7 +2,7 @@
   "format": "event-model",
   "version": 1,
   "generator": "Event-Model Builder (prototype)",
-  "exportedAt": "2026-11-19T14:34:56.251Z",
+  "exportedAt": "2026-11-20T14:26:58.773Z",
   "project": {
     "id": "pmwldlygxbto7",
     "name": "EmberLine",
@@ -3153,7 +3153,7 @@
       "feature": "f-modeling",
       "screen": "board",
       "actor": "Member",
-      "story": "Editors see the screens of the prototype they loaded, can flip between them in tabs, and see whether the prototype was split into separate pages.",
+      "story": "Editors see the screens of the prototype they loaded as tabs, and whether it was split into pages. Rules: (1) Tab labels: a loaded file shows its file name; a split page shows \"Role · Title\" (for example \"Host · Workshops\"), or just the title when the prototype has no role picker. (2) How a tab is shown: screenshots as images; HTML files and split pages in a sandboxed frame with scripts off (they're static snapshots); the single file of an interactive prototype runs live in a sandboxed frame (scripts on, no access to the app), as it does for splitting. (3) Notes under the tabs, worked out from the read model every time the board opens, so they come back after a reload: \"Loaded the first 80 of 95 files.\" when files were skipped; \"Ignored notes.txt and logo.svg: only HTML, screenshots and .zip files are used.\" when files were ignored (names listed as \"a and b\" / \"a, b and c\"); and after a split, the split sentence from split-pages. (4) With nothing loaded, the frame says \"No prototype yet\" and \"Drop the prototype above to see its screens here.\"",
       "uiElement": "Screens list",
       "command": null,
       "produces": [],
@@ -3201,15 +3201,15 @@
         "handles": [
           {
             "event": "PrototypeLoaded",
-            "does": "replace the entry: screenNames = fileNames, fileCount, skippedCount (for \"Loaded the first 80 of 95 files.\"), ignoredFileNames (for the ignored-files note), interactive; isSplit = false"
+            "does": "replace the entry: tabs = one per file (label = file name; kind = image for screenshots, live_html for an interactive file, otherwise static_html), fileCount, skippedCount, ignoredFileNames, interactive; isSplit = false; notes worked out from these"
           },
           {
             "event": "PrototypeSplitIntoPages",
-            "does": "isSplit = true; pageCount, roleCount, skippedPageCount = skippedCount and timedOut, for the board's split sentence; the tabs show the stored pages"
+            "does": "isSplit = true; tabs = one per stored page in position order (label = \"Role · Title\", or the title with no roles; kind = page); pageCount, roleCount, skippedPageCount, timedOut; notes = the split sentence"
           },
           {
             "event": "SplitUndone",
-            "does": "restore the original file tabs and clear the split flag"
+            "does": "isSplit = false; tabs back to the loaded files; the split note is dropped"
           }
         ]
       },
@@ -3218,7 +3218,8 @@
         "fields": [
           "prototypeId: uuid",
           "projectId: uuid",
-          "screenNames: array(string)",
+          "notes: array(string)",
+          "tabs: array(map) of {position, label, kind: enum(image|static_html|live_html|page), source}",
           "fileCount: integer",
           "isSplit: boolean",
           "pageCount: integer",
@@ -3235,23 +3236,50 @@
           "kind": "success",
           "title": "Shows loaded files as tabs",
           "given": [
-            "PrototypeLoaded(prototypeId: p-1, fileCount: 3)"
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [board.html, home.png, settings.html], fileCount: 3, interactive: false)"
           ],
           "when": "query PrototypeScreens(projectId: pr-1)",
           "then": [
-            "PrototypeScreens(fileCount: 3, isSplit: false)"
+            "PrototypeScreens(fileCount: 3, isSplit: false, tabs: [board.html · static_html, home.png · image, settings.html · static_html])"
+          ]
+        },
+        {
+          "kind": "success",
+          "title": "An interactive prototype runs live",
+          "given": [
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)"
+          ],
+          "when": "query PrototypeScreens(projectId: pr-1)",
+          "then": [
+            "PrototypeScreens(fileCount: 1, isSplit: false, tabs: [app.html · live_html])"
           ]
         },
         {
           "kind": "success",
           "title": "Split replaces tabs with pages",
           "given": [
-            "PrototypeLoaded(prototypeId: p-1, fileCount: 1)",
-            "PrototypeSplitIntoPages(prototypeId: p-1, pageCount: 12)"
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)",
+            "PrototypeSplitIntoPages(projectId: pr-1, prototypeId: p-1, pageCount: 3, roleCount: 2)",
+            "stored pages: Host/Home, Host/Workshops, Member/Workshops"
           ],
           "when": "query PrototypeScreens(projectId: pr-1)",
           "then": [
-            "PrototypeScreens(isSplit: true, pageCount: 12)"
+            "PrototypeScreens(isSplit: true, pageCount: 3, tabs: [Host · Home · page, Host · Workshops · page, Member · Workshops · page])",
+            "notes: [Split app.html into 3 pages across 2 roles. Each tab above is one page.]"
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "Pages of a prototype with no role picker",
+          "given": [
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)",
+            "PrototypeSplitIntoPages(projectId: pr-1, prototypeId: p-1, pageCount: 2, roleCount: 0)",
+            "stored pages: Home, Settings (no role)"
+          ],
+          "when": "query PrototypeScreens(projectId: pr-1)",
+          "then": [
+            "PrototypeScreens(tabs: [Home · page, Settings · page])",
+            "notes: [Split app.html into 2 pages. Each tab above is one page.]"
           ]
         },
         {
@@ -3260,7 +3288,33 @@
           "given": [],
           "when": "query PrototypeScreens(projectId: pr-1)",
           "then": [
-            "PrototypeScreens(fileCount: 0, screenNames: []) · shows “No prototype yet”"
+            "PrototypeScreens(fileCount: 0, tabs: [], notes: [])",
+            "the frame says: No prototype yet. Drop the prototype above to see its screens here."
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "Notes come back after a reload",
+          "given": [
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [page-01.html … page-80.html], fileCount: 80, skippedCount: 15, ignoredFileNames: [notes.txt, logo.svg])",
+            "the board is closed and opened again"
+          ],
+          "when": "query PrototypeScreens(projectId: pr-1)",
+          "then": [
+            "PrototypeScreens(fileCount: 80, notes: [Loaded the first 80 of 95 files., Ignored notes.txt and logo.svg: only HTML, screenshots and .zip files are used.])"
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "A split that stopped early keeps its note",
+          "given": [
+            "PrototypeLoaded(prototypeId: p-1, projectId: pr-1, fileNames: [app.html], fileCount: 1, interactive: true)",
+            "PrototypeSplitIntoPages(projectId: pr-1, prototypeId: p-1, pageCount: 9, roleCount: 2, timedOut: true)",
+            "the board is opened again"
+          ],
+          "when": "query PrototypeScreens(projectId: pr-1)",
+          "then": [
+            "PrototypeScreens(isSplit: true, pageCount: 9, notes: [Split app.html into 9 pages across 2 roles (stopped after 4 minutes). Each tab above is one page.])"
           ]
         },
         {
@@ -15330,7 +15384,8 @@
         "fields": [
           "prototypeId: uuid",
           "projectId: uuid",
-          "screenNames: array(string)",
+          "notes: array(string)",
+          "tabs: array(map) of {position, label, kind: enum(image|static_html|live_html|page), source}",
           "fileCount: integer",
           "isSplit: boolean",
           "pageCount: integer",
@@ -15353,9 +15408,9 @@
         "name": "PrototypeScreensProjection",
         "label": "Prototype screens projection",
         "fields": [
-          "on PrototypeLoaded: replace the entry: screenNames = fileNames, fileCount, skippedCount (for \"Loaded the first 80 of 95 files.\"), ignoredFileNames (for the ignored-files note), interactive; isSplit = false",
-          "on PrototypeSplitIntoPages: isSplit = true; pageCount, roleCount, skippedPageCount = skippedCount and timedOut, for the board's split sentence; the tabs show the stored pages",
-          "on SplitUndone: restore the original file tabs and clear the split flag"
+          "on PrototypeLoaded: replace the entry: tabs = one per file (label = file name; kind = image for screenshots, live_html for an interactive file, otherwise static_html), fileCount, skippedCount, ignoredFileNames, interactive; isSplit = false; notes worked out from these",
+          "on PrototypeSplitIntoPages: isSplit = true; tabs = one per stored page in position order (label = \"Role · Title\", or the title with no roles; kind = page); pageCount, roleCount, skippedPageCount, timedOut; notes = the split sentence",
+          "on SplitUndone: isSplit = false; tabs back to the loaded files; the split note is dropped"
         ],
         "column": 20,
         "step": 21,
@@ -15365,15 +15420,15 @@
         "handles": [
           {
             "event": "PrototypeLoaded",
-            "does": "replace the entry: screenNames = fileNames, fileCount, skippedCount (for \"Loaded the first 80 of 95 files.\"), ignoredFileNames (for the ignored-files note), interactive; isSplit = false"
+            "does": "replace the entry: tabs = one per file (label = file name; kind = image for screenshots, live_html for an interactive file, otherwise static_html), fileCount, skippedCount, ignoredFileNames, interactive; isSplit = false; notes worked out from these"
           },
           {
             "event": "PrototypeSplitIntoPages",
-            "does": "isSplit = true; pageCount, roleCount, skippedPageCount = skippedCount and timedOut, for the board's split sentence; the tabs show the stored pages"
+            "does": "isSplit = true; tabs = one per stored page in position order (label = \"Role · Title\", or the title with no roles; kind = page); pageCount, roleCount, skippedPageCount, timedOut; notes = the split sentence"
           },
           {
             "event": "SplitUndone",
-            "does": "restore the original file tabs and clear the split flag"
+            "does": "isSplit = false; tabs back to the loaded files; the split note is dropped"
           }
         ],
         "updates": "PrototypeScreens"
