@@ -29,7 +29,8 @@ defmodule EmberLine.Modeling.Derive.Job do
            screens = PrototypeScreens.for_project!(project_id),
            {:ok, input} <- Derive.input(project_id, screens),
            {:ok, text} <- Claude.ask(input.prompt, input.images),
-           {:ok, outline} <- Outline.parse(text) do
+           {:ok, outline} <- Outline.parse(text),
+           :ok <- Derive.check_size(outline) do
         record(run, screens, stack, outline, earlier, account_id)
       end
 

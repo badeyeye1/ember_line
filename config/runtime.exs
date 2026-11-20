@@ -35,6 +35,10 @@ config :ember_line,
          fn {_key, value} -> value in [nil, ""] end
        )
 
+# derive-model: the most slices one derive can take, a safety net (default 400).
+config :ember_line, EmberLine.Modeling.Derive,
+  max_slices: String.to_integer(System.get_env("EMBERLINE_MAX_DERIVE_SLICES", "400"))
+
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :ember_line, EmberLineWeb.Endpoint,

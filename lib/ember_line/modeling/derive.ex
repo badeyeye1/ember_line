@@ -103,6 +103,21 @@ defmodule EmberLine.Modeling.Derive do
     if Input.too_large?(input), do: {:error, :too_large_to_derive}, else: {:ok, input}
   end
 
+  @doc """
+  The safety net for one derive: an outline with more slices than the
+  EMBERLINE_MAX_DERIVE_SLICES setting (default 400) is rejected before
+  it's stored.
+  """
+  def check_size(%{"slices" => slices}) do
+    max = max_slices()
+    count = length(slices)
+    if count > max, do: {:error, {:outline_too_big, count, max}}, else: :ok
+  end
+
+  @doc "The most slices one derive can take: the EMBERLINE_MAX_DERIVE_SLICES setting."
+  def max_slices,
+    do: :ember_line |> Application.get_env(__MODULE__, []) |> Keyword.get(:max_slices, 400)
+
   @doc "The project's row, unless it doesn't exist or was deleted."
   def project(project_id) do
     case Ash.get(ProjectList, project_id, authorize?: false) do
