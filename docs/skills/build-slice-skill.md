@@ -323,12 +323,15 @@ Send a status message at each step (see "Talking to the Build board").
    - a field name contradicts an existing one (`customerId` where the stream uses `accountId`);
    - a scenario needs a rule the spec doesn't define;
    - an event field has no source: it isn't in the command, in the stream's earlier events, or a timestamp or generated id;
-   - one value has two names (`actorAccountId` on the command, `accountId` on the event);
+   - one value has two names (`actorId` on the command, `memberId` on the event);
    - a unique value has no "taken" scenario, or a code, password or token has no wrong, expired and too-many-tries scenarios;
    - a string field should be one of a fixed list;
    - the screen's reference (`docs/design/screens/<screen>.*`) shows a button, link or number this slice doesn't cover and no other slice does;
    - a rule depends on a slice that isn't built yet, and no scenario says what holds until then;
-   - a value the system works out (slug, default name, expiry) has no scenario showing how.
+   - a value the system works out (slug, default name, expiry) has no scenario showing how;
+   - anything under "What to look for" (6) in `review-spec-skill.md`: no order when several errors apply, a limit that doesn't say what counts or what's kept, a message with a number or name missing its 0/1/many wording, work outside the aggregate without its results or storage, a repeat or restart with no answer, a missing or deleted parent, another slice that sends the same command with different rules.
+
+   Read the slice's **Rules** list first: build from the rules, and test with the scenarios.
 
    Ask everything in one go, then wait. Don't write a guessed rule, even provisionally: a rule with no scenario has no test, and it tends to stay.
 
@@ -595,10 +598,10 @@ Follow the repo's layout if it has one. Otherwise:
 When step 3 finds gaps, post them together as one message on the slice (and in the pull request or issue, if there is one), send `blocked`, and wait. Number the questions. For each, say what's missing, why the code needs it, and a suggested answer in the model's terms (a scenario with the exact error text, a field to drop or rename, a list of values):
 
 ```text
-Spec questions for save-workspace:
-1. title: WorkspaceDetailsSaved has a title that SaveWorkspaceDetails doesn't take, so it would be recorded empty. Drop it from the event, or say where it comes from?
-2. Taken URL: no scenario covers a URL another workspace already uses. Suggested: "URL already taken" → error: That URL is taken. Try another.
-3. defaultStack is a plain string. Should the model list the allowed stacks?
+Spec questions for rename-workshop:
+1. hostName: WorkshopRenamed has a hostName that RenameWorkshop doesn't take, so it would be recorded empty. Drop it from the event, or say where it comes from?
+2. Taken address: no scenario covers an address another workshop already uses. Suggested: "Address already taken" → error: That address is taken. Try another.
+3. level is a plain string. Should the model list the allowed levels?
 ```
 
 The answers come back as a change to `docs/model.json` (made in the builder and exported). Pull it, re-read the slice, and carry on from step 4. If the person answers in chat instead, ask them to put it in the model first, so the next slice and the reviewer see the same thing.
