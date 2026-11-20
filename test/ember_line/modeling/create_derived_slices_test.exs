@@ -16,7 +16,7 @@ defmodule EmberLine.Modeling.CreateDerivedSlicesTest do
 
   @at ~U[2026-11-20 10:00:00Z]
   @stack "Elixir: Phoenix LiveView + Ash + AshCommanded"
-  @limit "the board is at the 150 slice limit."
+  @limit "this project is at its limit of 2,000 slices."
 
   setup do
     account = Ecto.UUID.generate()
@@ -143,8 +143,9 @@ defmodule EmberLine.Modeling.CreateDerivedSlicesTest do
     assert [_once] = slice_added(s1)
   end
 
-  test "The board fills up part way", ctx do
-    board!(ctx, 148)
+  test "The project reaches the safety limit part way", ctx do
+    max_slices!(2000)
+    board!(ctx, 1998)
     [s1, s2, s3, s4, s5] = slices = ids(5)
 
     d3 =
@@ -152,16 +153,18 @@ defmodule EmberLine.Modeling.CreateDerivedSlicesTest do
 
     run_jobs()
 
-    assert [%SliceAdded{position: 149}] = slice_added(s1)
-    assert [%SliceAdded{position: 150}] = slice_added(s2)
+    assert [%SliceAdded{position: 1}] = slice_added(s1)
+    assert [%SliceAdded{position: 2}] = slice_added(s2)
     assert Enum.all?([s3, s4, s5], &(slice_added(&1) == []))
 
     assert Ash.get!(DerivationRun, d3).message ==
              "Mapped 1 screen into 5 slices. 3 slices weren't added: " <> @limit
   end
 
+  # Rule 6: "1 slice wasn't added: …" for one, with the setting's number.
   test "One slice over the limit", ctx do
-    board!(ctx, 149)
+    max_slices!(3)
+    board!(ctx, 2)
     [s1, s2] = ids(2)
 
     d4 =
@@ -172,11 +175,11 @@ defmodule EmberLine.Modeling.CreateDerivedSlicesTest do
 
     run_jobs()
 
-    assert [%SliceAdded{position: 150}] = slice_added(s1)
+    assert [%SliceAdded{position: 1}] = slice_added(s1)
     assert slice_added(s2) == []
 
     assert Ash.get!(DerivationRun, d4).message ==
-             "Mapped 1 screen into 2 slices. 1 slice wasn't added: " <> @limit
+             "Mapped 1 screen into 2 slices. 1 slice wasn't added: this project is at its limit of 3 slices."
   end
 
   test "The project is deleted while slices are being added", ctx do
@@ -270,7 +273,14 @@ defmodule EmberLine.Modeling.CreateDerivedSlicesTest do
     }
   end
 
-  # The board already has `n` slices, added by hand.
+  # The EMBERLINE_MAX_SLICES setting, for this test.
+  defp max_slices!(n) do
+    before = Application.get_env(:ember_line, Slices, [])
+    Application.put_env(:ember_line, Slices, Keyword.put(before, :max_slices, n))
+    on_exit(fn -> Application.put_env(:ember_line, Slices, before) end)
+  end
+
+  # The project already has `n` slices, added by hand.
   defp board!(ctx, n) do
     for position <- 1..n do
       command = add_slice(ctx, Ecto.UUID.generate(), "Slice #{position}", "home", position)

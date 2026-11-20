@@ -35,6 +35,11 @@ config :ember_line,
          fn {_key, value} -> value in [nil, ""] end
        )
 
+# create-derived-slices, add-slice: the per-project slice ceiling, a safety
+# net against runaway automations (default 2,000).
+config :ember_line, EmberLine.Modeling.Slices,
+  max_slices: String.to_integer(System.get_env("EMBERLINE_MAX_SLICES", "2000"))
+
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :ember_line, EmberLineWeb.Endpoint,
