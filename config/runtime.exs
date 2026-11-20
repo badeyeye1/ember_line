@@ -23,6 +23,18 @@ end
 config :ember_line, EmberLineWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+# derive-model: Claude is called on the server with this key, never a
+# person's own. EMBERLINE_DERIVE_MODEL picks another model.
+config :ember_line,
+       EmberLine.Modeling.Derive.Claude,
+       Enum.reject(
+         [
+           api_key: System.get_env("ANTHROPIC_API_KEY"),
+           model: System.get_env("EMBERLINE_DERIVE_MODEL")
+         ],
+         fn {_key, value} -> value in [nil, ""] end
+       )
+
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :ember_line, EmberLineWeb.Endpoint,

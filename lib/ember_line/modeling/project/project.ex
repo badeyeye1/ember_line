@@ -10,7 +10,9 @@ defmodule EmberLine.Modeling.Project do
   alias EmberLine.Modeling.Project.{
     CreateProject,
     DeleteProject,
+    DeriveModel,
     LoadPrototype,
+    ModelDerived,
     ProjectCreated,
     ProjectDeleted,
     PrototypeLimits,
@@ -137,6 +139,19 @@ defmodule EmberLine.Modeling.Project do
     end
   end
 
+  # derive-model
+
+  def execute(%__MODULE__{} = project, %DeriveModel{} = command) do
+    cond do
+      is_nil(project.project_id) or project.deleted? -> {:error, :project_not_found}
+      # Until Member roles exist, "allowed" means signed in.
+      is_nil(command.derived_by) -> {:error, :derive_not_allowed}
+      is_nil(project.prototype_id) -> {:error, :nothing_to_derive}
+      command.stack not in Workspace.stacks() -> {:error, :stack_not_listed}
+      true -> model_derived(project, command)
+    end
+  end
+
   defp split_found_pages(_project, %SplitPrototype{found_page_count: 0, timed_out: true}),
     do: {:error, :prototype_did_not_respond}
 
@@ -164,6 +179,9 @@ defmodule EmberLine.Modeling.Project do
 
   def apply(%__MODULE__{} = project, %PrototypeSplitIntoPages{}), do: %{project | split?: true}
   def apply(%__MODULE__{} = project, %SplitUndone{}), do: %{project | split?: false}
+
+  # Nothing later commands decide on: the outline is in Derivation.
+  def apply(%__MODULE__{} = project, %ModelDerived{}), do: project
 
   defp project_created(%CreateProject{} = command) do
     %ProjectCreated{
@@ -220,6 +238,23 @@ defmodule EmberLine.Modeling.Project do
       timed_out: command.timed_out,
       split_by: command.split_by,
       split_at: command.split_at
+    }
+  end
+
+  defp model_derived(project, %DeriveModel{} = command) do
+    %ModelDerived{
+      derivation_id: command.derivation_id,
+      project_id: project.project_id,
+      prototype_id: project.prototype_id,
+      stack: command.stack,
+      app_name: command.app_name,
+      screen_count: command.screen_count,
+      slice_count: command.slice_count,
+      outcome_count: command.outcome_count,
+      slice_ids: command.slice_ids,
+      not_in_new_outline: command.not_in_new_outline,
+      derived_by: command.derived_by,
+      derived_at: command.derived_at
     }
   end
 

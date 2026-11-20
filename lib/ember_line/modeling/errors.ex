@@ -33,7 +33,14 @@ defmodule EmberLine.Modeling.Errors do
     no_pages_found: "No separate pages found. Derive the model from the whole file instead.",
     # undo-split
     undo_split_not_allowed: "Only editors can undo a split.",
-    nothing_to_undo: "There's no split to undo."
+    nothing_to_undo: "There's no split to undo.",
+    # derive-model
+    derive_not_allowed: "Only editors can derive the model.",
+    nothing_to_derive: "Upload the prototype first, then derive the model.",
+    too_large_to_derive:
+      "This prototype is too large to derive in one go. Split it into pages first.",
+    claude_unreachable: "Claude can't be reached right now. Try again in a minute.",
+    answer_unreadable: "Claude's answer couldn't be read. Press Derive model to try again."
   }
 
   @doc "What the screen shows for the error."

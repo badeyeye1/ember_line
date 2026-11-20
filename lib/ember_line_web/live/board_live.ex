@@ -12,7 +12,7 @@ defmodule EmberLineWeb.BoardLive do
   use EmberLineWeb, :live_view
 
   alias EmberLine.Accounts.Workspace
-  alias EmberLine.Modeling.{Errors, Intake, Prototypes}
+  alias EmberLine.Modeling.{Derive, Errors, Intake, Prototypes}
   alias EmberLine.Modeling.Project
   alias EmberLine.Modeling.Projections.{ProjectList, PrototypeScreens}
   alias EmberLineWeb.PrototypeController
@@ -36,6 +36,7 @@ defmodule EmberLineWeb.BoardLive do
        |> assign(page_title: project.name, workspace: workspace, project: project)
        |> assign(error: nil, paste: to_form(%{"html" => ""}, as: :paste), pages: [])
        |> show_screens()
+       |> show_derive()
        |> allow_upload(:prototype,
          accept: :any,
          max_entries: @max_entries,
@@ -127,6 +128,60 @@ defmodule EmberLineWeb.BoardLive do
       tab -> {:noreply, show_tab(socket, tab)}
     end
   end
+
+  # derive-model: the rules are checked at once; Claude works in the background.
+  def handle_event("derive", _params, socket) do
+    case Derive.start(socket.assigns.project.project_id, socket.assigns.current_user.id) do
+      {:ok, run} ->
+        {:noreply, socket |> assign(run: run, derive_error: nil) |> assign_derive()}
+
+      {:error, reason} ->
+        {:noreply, socket |> assign(derive_error: Errors.message(reason)) |> assign_derive()}
+    end
+  end
+
+  def handle_event("stop_derive", _params, %{assigns: %{run: %{status: :running} = run}} = socket) do
+    {:ok, run} = Derive.stop(run.derivation_id)
+    {:noreply, socket |> assign(run: run) |> assign_derive()}
+  end
+
+  def handle_event("stop_derive", _params, socket), do: {:noreply, socket}
+
+  # The derive job tells the board when a run ends.
+  @impl true
+  def handle_info({:derivation_run, run}, socket) do
+    if socket.assigns.run == nil or
+         DateTime.compare(run.started_at, socket.assigns.run.started_at) != :lt do
+      {:noreply, socket |> assign(run: run, derive_error: nil) |> assign_derive()}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  # derive-model: the board's sentence for the project's latest run.
+  defp show_derive(socket) do
+    project_id = socket.assigns.project.project_id
+
+    if connected?(socket),
+      do: Phoenix.PubSub.subscribe(EmberLine.PubSub, Derive.topic(project_id))
+
+    socket
+    |> assign(run: Derive.latest_run(project_id), derive_error: nil)
+    |> assign_derive()
+  end
+
+  defp assign_derive(%{assigns: %{derive_error: error}} = socket) when is_binary(error),
+    do: assign(socket, derive: %{tone: "err", message: error})
+
+  defp assign_derive(%{assigns: %{run: nil}} = socket), do: assign(socket, derive: nil)
+
+  defp assign_derive(%{assigns: %{run: run}} = socket),
+    do:
+      assign(socket,
+        derive: %{tone: if(run.status == :failed, do: "err", else: "note"), message: run.message}
+      )
+
+  defp running?(run), do: match?(%{status: :running}, run)
 
   defp count(n) when is_integer(n) and n >= 0, do: n
   defp count(_not_a_count), do: 0
@@ -252,8 +307,21 @@ defmodule EmberLineWeb.BoardLive do
                 placeholder="…or paste the HTML of a Claude prototype"
               >{Phoenix.HTML.Form.normalize_value("textarea", @paste[:html].value)}</textarea>
             </.form>
-            <div :if={@loaded && !@loaded.split?} class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-2">
               <.button
+                id="derive-model"
+                type="button"
+                variant="primary"
+                phx-click="derive"
+                disabled={running?(@run)}
+              >
+                Derive model
+              </.button>
+              <.button :if={running?(@run)} id="stop-derive" type="button" phx-click="stop_derive">
+                Stop
+              </.button>
+              <.button
+                :if={@loaded && !@loaded.split?}
                 id="split-pages"
                 type="button"
                 phx-hook=".Splitter"
@@ -272,6 +340,7 @@ defmodule EmberLineWeb.BoardLive do
         <.notice :for={{note, i} <- Enum.with_index(@notes)} id={"intake-note-#{i}"}>
           {note}<.undo_split :if={@loaded && @loaded.split? && !@error && i == 0} />
         </.notice>
+        <.notice :if={@derive} tone={@derive.tone} id="derive-status">{@derive.message}</.notice>
 
         <section class="ui-screen-band" aria-label="Prototype screens">
           <div class="ui-screen-col">
