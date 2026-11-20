@@ -432,6 +432,109 @@ defmodule EmberLineWeb.BoardLiveTest do
     assert has_element?(view, "#split-pages")
   end
 
+  # derive-model
+
+  defp stub_claude(text) do
+    Req.Test.stub(EmberLine.Modeling.Derive.Claude, fn conn ->
+      body =
+        Enum.map_join(
+          [
+            %{
+              "type" => "content_block_delta",
+              "delta" => %{"type" => "text_delta", "text" => text}
+            },
+            %{"type" => "message_delta", "delta" => %{"stop_reason" => "end_turn"}}
+          ],
+          &"data: #{Jason.encode!(&1)}\n\n"
+        )
+
+      conn
+      |> Plug.Conn.put_resp_content_type("text/event-stream")
+      |> Plug.Conn.send_resp(200, body)
+    end)
+  end
+
+  defp outline do
+    Jason.encode!(%{
+      "app" => %{"name" => "Studio Workshops"},
+      "screens" => [%{"id" => "home", "name" => "Home"}],
+      "outcomes" => [],
+      "slices" => [
+        %{
+          "id" => "view-home",
+          "name" => "View home",
+          "pattern" => "state_view",
+          "screen" => "home"
+        },
+        %{"id" => "rsvp", "name" => "RSVP", "pattern" => "state_change", "screen" => "home"}
+      ]
+    })
+  end
+
+  test "Derive model with nothing loaded says to upload first", ctx do
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+
+    view |> element("#derive-model", "Derive model") |> render_click()
+
+    assert has_element?(
+             view,
+             "#derive-status.ui-note",
+             "Upload the prototype first, then derive the model."
+           )
+  end
+
+  test "Derive model: running with Stop, then the done sentence", ctx do
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+    view |> form("#prototype-paste", paste: %{html: "<h1>Home</h1>"}) |> render_change()
+    stub_claude(outline())
+
+    view |> element("#derive-model") |> render_click()
+
+    assert has_element?(
+             view,
+             "#derive-status",
+             "Claude is reading 1 file and mapping screens, slices and events. This takes a minute or two."
+           )
+
+    assert has_element?(view, "#stop-derive", "Stop")
+    assert has_element?(view, "#derive-model[disabled]")
+
+    Oban.drain_queue(queue: :derive)
+
+    assert render(view) =~ "Mapped 1 screen into 2 slices."
+    refute has_element?(view, "#stop-derive")
+    refute has_element?(view, "#derive-model[disabled]")
+
+    # The sentence comes back when the board is opened again.
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+    assert has_element?(view, "#derive-status", "Mapped 1 screen into 2 slices.")
+  end
+
+  test "Stop while running", ctx do
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+    view |> form("#prototype-paste", paste: %{html: "<h1>Home</h1>"}) |> render_change()
+
+    view |> element("#derive-model") |> render_click()
+    view |> element("#stop-derive") |> render_click()
+
+    assert has_element?(view, "#derive-status", "Stopped.")
+    refute has_element?(view, "#stop-derive")
+  end
+
+  test "Claude's answer can't be read: shown as an error", ctx do
+    {:ok, view, _html} = live(ctx.conn, path(ctx))
+    view |> form("#prototype-paste", paste: %{html: "<h1>Home</h1>"}) |> render_change()
+    stub_claude("Sorry.")
+
+    view |> element("#derive-model") |> render_click()
+    Oban.drain_queue(queue: :derive)
+
+    assert render(view) =~
+             "Claude&#39;s answer couldn&#39;t be read. Press Derive model to try again."
+
+    assert has_element?(view, "#derive-status.ui-note.err")
+  end
+
   defp files_for(ctx) do
     project = Aggregate.aggregate_state(CommandedApp, Project, "project-" <> ctx.project_id)
     PrototypeFile.for_prototype!(project.prototype_id)

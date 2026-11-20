@@ -1,6 +1,12 @@
 import Config
 
 config :ember_line, Oban, testing: :manual
+
+# derive-model: Claude is stubbed with Req.Test; no retries, so failures show at once.
+config :ember_line, EmberLine.Modeling.Derive.Claude,
+  api_key: "test-key",
+  req_options: [plug: {Req.Test, EmberLine.Modeling.Derive.Claude}, retry: false]
+
 config :ember_line, token_signing_secret: "cWwI4zCj7yORhCn/ApmXmYUqLQIJmbji"
 config :bcrypt_elixir, log_rounds: 1
 

@@ -11,5 +11,7 @@ defmodule EmberLine.Modeling do
     resource EmberLine.Modeling.Projections.PrototypeScreens
     resource EmberLine.Modeling.PrototypeFile
     resource EmberLine.Modeling.PrototypePage
+    resource EmberLine.Modeling.DerivationRun
+    resource EmberLine.Modeling.Derivation
   end
 end

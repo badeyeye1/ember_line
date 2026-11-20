@@ -7,6 +7,7 @@ defmodule EmberLine.Modeling.Router do
   alias EmberLine.Modeling.Project.{
     CreateProject,
     DeleteProject,
+    DeriveModel,
     LoadPrototype,
     SplitPrototype,
     UndoSplit
@@ -28,4 +29,7 @@ defmodule EmberLine.Modeling.Router do
 
   # undo-split
   dispatch UndoSplit, to: Project
+
+  # derive-model
+  dispatch DeriveModel, to: Project
 end
