@@ -1,6 +1,6 @@
 ---
 name: phoenix_live_view
-version: 1.2.13
+version: 1.2.14
 scm: hex
 repo: hexpm
 type: mix
