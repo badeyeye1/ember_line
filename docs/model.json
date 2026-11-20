@@ -2,7 +2,7 @@
   "format": "event-model",
   "version": 1,
   "generator": "Event-Model Builder (prototype)",
-  "exportedAt": "2026-11-20T18:31:13.590Z",
+  "exportedAt": "2026-11-20T19:07:46.529Z",
   "project": {
     "id": "pmwldlygxbto7",
     "name": "EmberLine",
@@ -4007,7 +4007,7 @@
       "feature": "f-modeling",
       "screen": "board",
       "actor": "Member",
-      "story": "An editor presses Derive model and Claude turns the loaded prototype into an outline of the app: screens, slices, events, streams and business outcomes (pass 1). Rules: (1) Pressing Derive model checks the rules below at once, then starts a background job (Oban) and records a DerivationRun (state stored: derivationId, projectId, status running|stopped|failed|done, message, startedBy, startedAt). The job calls Claude; when the answer is in, it stores the outline in a Derivation record (state stored, keyed by derivationId: app, screens, streams, outcomes, slices) and dispatches DeriveModel with the counts and slice ids. The aggregate checks the rules again. (2) Claude call: on the server, with the key in the ANTHROPIC_API_KEY setting (never a person's own key), model claude-sonnet-5-5 unless the EMBERLINE_DERIVE_MODEL setting says otherwise, through Req. The prompt is the prototype's outline prompt and Event Modeling rules, kept in priv/prompts/derive_outline.txt. (3) What Claude receives: HTML files and split pages as text, screenshots as images (the first 20 by name; more are left out with a note). While the prototype is split, only its pages are sent. If the text to send is over 240,000 bytes, the derive stops with the too-large error; reading a prototype in parts comes later. The existing slices are sent too, so Claude reuses their ids and names. (4) Errors, checked in this order: no such project; not an editor; nothing loaded; stack not in the list; too large; then, from the job, Claude unreachable (rate limited, timed out, or a 5xx) and an answer that can't be read, has no slices, or has a slice with an empty name or an unknown pattern (the outline is rejected whole, before it's stored). (5) Stack: the project's stack from ProjectCreated, or Other when it has none. (6) Deriving again: the new outline replaces the earlier one. create-derived-slices adds only slices that don't exist yet: two slices are the same when they have the same id, or else the same name (ignoring case) on the same screen. Nothing is deleted: earlier slices missing from the new outline are listed in notInNewOutline and named in the done sentence. (7) Board sentences, from the DerivationRun: while running \"Claude is reading <n> file(s) and mapping screens, slices and events. This takes a minute or two.\" (\"<n> page(s)\" when split; singular for 1) with a Stop button; after Stop \"Stopped.\"; when done \"Mapped <s> screen(s) into <n> slice(s).\", plus \"<k> slice(s) from before aren't in the new model: review them on the board.\" when notInNewOutline isn't empty. If the board fills up while slices are added, create-derived-slices adds \"<n> slices weren't added: the board is at the 150 slice limit.\" Pass 2 (fields and scenarios) is the separate slice detail-derived-slices.",
+      "story": "An editor presses Derive model and Claude turns the loaded prototype into an outline of the app: screens, slices, events, streams and business outcomes (pass 1). Rules: (1) Pressing Derive model checks the rules below at once, then starts a background job (Oban) and records a DerivationRun (state stored: derivationId, projectId, status running|stopped|failed|done, message, startedBy, startedAt). The job calls Claude; when the answer is in, it stores the outline in a Derivation record (state stored, keyed by derivationId: app, screens, streams, outcomes, slices) and dispatches DeriveModel with the counts and slice ids. The aggregate checks the rules again. (2) Claude call: on the server, with the key in the ANTHROPIC_API_KEY setting (never a person's own key), model claude-sonnet-5-5 unless the EMBERLINE_DERIVE_MODEL setting says otherwise, through Req. The prompt is the prototype's outline prompt and Event Modeling rules, kept in priv/prompts/derive_outline.txt. (3) What Claude receives: HTML files and split pages as text, screenshots as images (the first 20 by name; more are left out with a note). While the prototype is split, only its pages are sent. If the text to send is over 240,000 bytes, the derive stops with the too-large error; reading a prototype in parts comes later. The existing slices are sent too, so Claude reuses their ids and names. (4) Errors, checked in this order: no such project; not an editor; nothing loaded; stack not in the list; too large; then, from the job, Claude unreachable (rate limited, timed out, or a 5xx) and an answer that can't be read, has no slices, or has a slice with an empty name or an unknown pattern (the outline is rejected whole, before it's stored). (5) Stack: the project's stack from ProjectCreated, or Other when it has none. (6) Deriving again: the new outline replaces the earlier one. create-derived-slices adds only slices that don't exist yet: two slices are the same when they have the same id, or else the same name (ignoring case) on the same screen. Nothing is deleted: earlier slices missing from the new outline are listed in notInNewOutline and named in the done sentence. (7) Board sentences, from the DerivationRun: while running \"Claude is reading <n> file(s) and mapping screens, slices and events. This takes a minute or two.\" (\"<n> page(s)\" when split; singular for 1) with a Stop button; after Stop \"Stopped.\"; when done \"Mapped <s> screen(s) into <n> slice(s).\", plus \"<k> slice(s) from before aren't in the new model: review them on the board.\" when notInNewOutline isn't empty. If the project reaches its safety ceiling while slices are added, create-derived-slices adds \"<n> slices weren't added: this project is at its limit of 2,000 slices.\" Pass 2 (fields and scenarios) is the separate slice detail-derived-slices. (8) Safety net for one derive: an outline with more than 400 slices (the EMBERLINE_MAX_DERIVE_SLICES setting) is rejected before it's stored, as a sign Claude has gone wrong or the prototype is too big for one go: \"Claude returned 512 slices, more than one derive can take (400). Derive one feature at a time.\"",
       "uiElement": "Derive model button",
       "command": {
         "name": "DeriveModel",
@@ -4233,6 +4233,22 @@
           "then": [
             "error: Only editors can derive the model."
           ]
+        },
+        {
+          "kind": "error",
+          "title": "An outline that's too big",
+          "given": [
+            "ProjectCreated(projectId: p-1)",
+            "PrototypeLoaded(prototypeId: pr-1, projectId: p-1, fileCount: 60)",
+            "Claude answers with 512 slices",
+            "EMBERLINE_MAX_DERIVE_SLICES = 400"
+          ],
+          "when": "the job reads the answer",
+          "then": [
+            "DerivationRun d-1: failed",
+            "error: Claude returned 512 slices, more than one derive can take (400). Derive one feature at a time.",
+            "no events recorded"
+          ]
         }
       ]
     },
@@ -4245,7 +4261,7 @@
       "feature": "f-modeling",
       "screen": "board",
       "actor": "Automation",
-      "story": "After a derive, each slice in the outline gets its own history: the app adds them to the board one by one, in the outline's order. Rules: (1) Every value SliceAdded records arrives in AddSlice: sliceId, position, name, pattern, screenId, featureId, produces, reads, commandName, readModelName, projectionName; the automation takes them from the Derivation record stored under the derivationId. (2) projectionName is empty for derived slices (the outline has no projections); pass 2 (SliceDetailed.projection) fills it in. (3) SlicesToCreateProjection also keeps AddedSlices (projectId, sliceId, name, screenId), filled from every SliceAdded, including slices added by hand. On ModelDerived it lists only the outline's slices whose id, or whose name (ignoring case) and screen, isn't in AddedSlices. (4) AddSlice for a slice id that already has a history records nothing and isn't an error, so a restart part way through doesn't add a slice twice. (5) For a whole-model derive, featureId is empty. Feature derives (FeatureDerived) are handled when derive-feature is built, in the Features & boundaries feature. (6) AddSlice follows the same rules whether a person or this automation sends it (see add-slice). The outline is not capped: if adding would take the board over 150 slices, AddSlice refuses, the automation stops adding, and the derive status says \"<n> slices weren't added: the board is at the 150 slice limit.\" (\"1 slice wasn't added: …\" for one). An outline slice with an empty name or an unknown pattern never reaches AddSlice: derive-model rejects the whole outline before it's stored. (7) If the project is deleted (or doesn't exist) while slices are being added, AddSlice records nothing and the rest of the list is dropped, with no message, since the board is gone.",
+      "story": "After a derive, each slice in the outline gets its own history: the app adds them to the board one by one, in the outline's order. Rules: (1) Every value SliceAdded records arrives in AddSlice: sliceId, position, name, pattern, screenId, featureId, produces, reads, commandName, readModelName, projectionName; the automation takes them from the Derivation record stored under the derivationId. (2) projectionName is empty for derived slices (the outline has no projections); pass 2 (SliceDetailed.projection) fills it in. (3) SlicesToCreateProjection also keeps AddedSlices (projectId, sliceId, name, screenId), filled from every SliceAdded, including slices added by hand. On ModelDerived it lists only the outline's slices whose id, or whose name (ignoring case) and screen, isn't in AddedSlices. (4) AddSlice for a slice id that already has a history records nothing and isn't an error, so a restart part way through doesn't add a slice twice. (5) For a whole-model derive, featureId is empty. Feature derives (FeatureDerived) are handled when derive-feature is built, in the Features & boundaries feature. (6) AddSlice follows the same rules whether a person or this automation sends it (see add-slice). There's no working limit on slices. If the project reaches the safety ceiling (EMBERLINE_MAX_SLICES, default 2,000), AddSlice refuses, the automation stops adding, and the derive status says \"<n> slices weren't added: this project is at its limit of 2,000 slices.\" (\"1 slice wasn't added: …\" for one). An outline slice with an empty name or an unknown pattern never reaches AddSlice: derive-model rejects the whole outline before it's stored. (7) If the project is deleted (or doesn't exist) while slices are being added, AddSlice records nothing and the rest of the list is dropped, with no message, since the board is gone.",
       "uiElement": "",
       "command": {
         "name": "AddSlice",
@@ -4426,34 +4442,6 @@
         },
         {
           "kind": "edge",
-          "title": "The board fills up part way",
-          "given": [
-            "the board has 148 slices",
-            "ModelDerived(projectId: p-1, derivationId: d-3, sliceIds: [s-1, s-2, s-3, s-4, s-5])"
-          ],
-          "when": "SlicesToCreate(projectId: p-1) has s-1 … s-5",
-          "then": [
-            "SliceAdded(sliceId: s-1, position: 149)",
-            "SliceAdded(sliceId: s-2, position: 150)",
-            "AddSlice for s-3 is refused; s-3, s-4 and s-5 aren't added",
-            "the derive status says: 3 slices weren't added: the board is at the 150 slice limit."
-          ]
-        },
-        {
-          "kind": "edge",
-          "title": "One slice over the limit",
-          "given": [
-            "the board has 149 slices",
-            "ModelDerived(projectId: p-1, derivationId: d-4, sliceIds: [s-1, s-2])"
-          ],
-          "when": "SlicesToCreate(projectId: p-1) has s-1 and s-2",
-          "then": [
-            "SliceAdded(sliceId: s-1, position: 150)",
-            "the derive status says: 1 slice wasn't added: the board is at the 150 slice limit."
-          ]
-        },
-        {
-          "kind": "edge",
           "title": "The project is deleted while slices are being added",
           "given": [
             "ModelDerived(projectId: p-1, derivationId: d-1, sliceIds: [s-1, s-2, s-3])",
@@ -4464,6 +4452,22 @@
           "then": [
             "AddSlice for s-2 records nothing; s-3 is dropped",
             "no message: the board is gone"
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "The project reaches the safety limit part way",
+          "given": [
+            "the project has 1,998 slices",
+            "EMBERLINE_MAX_SLICES = 2000",
+            "ModelDerived(projectId: p-1, derivationId: d-3, sliceIds: [s-1, s-2, s-3, s-4, s-5])"
+          ],
+          "when": "SlicesToCreate(projectId: p-1) has s-1 … s-5",
+          "then": [
+            "SliceAdded(sliceId: s-1)",
+            "SliceAdded(sliceId: s-2)",
+            "AddSlice for s-3 is refused; s-3, s-4 and s-5 aren't added",
+            "the derive status says: 3 slices weren't added: this project is at its limit of 2,000 slices."
           ]
         }
       ]
@@ -6294,7 +6298,7 @@
       "feature": "f-modeling",
       "screen": "board",
       "actor": "Member",
-      "story": "Team members see the whole event model laid out as a timeline of steps, so they can follow how the app works from left to right.",
+      "story": "Team members see the whole event model laid out as a timeline of steps, so they can follow how the app works from left to right. Large boards: from 300 slices (the EMBERLINE_LARGE_BOARD setting) the board shows a notice, and nothing is refused: \"This board has 312 slices. Pick a feature above to work on part of it.\" If the project has no features yet, it says \"This board has 312 slices. Identify features to work on part of it.\"",
       "uiElement": "Event model board",
       "command": null,
       "produces": [],
@@ -6534,7 +6538,8 @@
           "sliceCount: integer",
           "scenarioCount: integer",
           "status: enum(planned|in_progress|done)",
-          "features: list"
+          "features: list",
+          "largeBoard: boolean"
         ]
       },
       "specs": [
@@ -6611,6 +6616,45 @@
           "then": [
             "only s-1 is shown"
           ]
+        },
+        {
+          "kind": "edge",
+          "title": "A large board shows a notice",
+          "given": [
+            "SliceAdded × 312 in p-1",
+            "FeatureDefined × 6 in p-1",
+            "EMBERLINE_LARGE_BOARD = 300"
+          ],
+          "when": "query EventModelBoard(projectId: p-1)",
+          "then": [
+            "EventModelBoard(sliceCount: 312, largeBoard: true)",
+            "the board says: This board has 312 slices. Pick a feature above to work on part of it."
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "A large board with no features yet",
+          "given": [
+            "SliceAdded × 312 in p-1",
+            "EMBERLINE_LARGE_BOARD = 300"
+          ],
+          "when": "query EventModelBoard(projectId: p-1)",
+          "then": [
+            "EventModelBoard(sliceCount: 312, largeBoard: true)",
+            "the board says: This board has 312 slices. Identify features to work on part of it."
+          ]
+        },
+        {
+          "kind": "edge",
+          "title": "Just under the notice",
+          "given": [
+            "SliceAdded × 299 in p-1"
+          ],
+          "when": "query EventModelBoard(projectId: p-1)",
+          "then": [
+            "EventModelBoard(sliceCount: 299, largeBoard: false)",
+            "no notice"
+          ]
         }
       ]
     },
@@ -6623,7 +6667,7 @@
       "feature": "f-modeling",
       "screen": "board",
       "actor": "Member",
-      "story": "An editor adds a new step to the board so a missing piece of the app can be described. Rules: the same AddSlice command as derived slices; a slice added by hand gives its sliceId, name, pattern, screenId and afterSliceId, and leaves featureId, produces, reads and the names empty (they're filled in later by editing). Its position is one after afterSliceId, or last when afterSliceId is empty. AddSlice for a slice id that already exists records nothing. A project that doesn't exist or was deleted gives \"That project doesn't exist.\" The same rules apply when the create-derived-slices automation sends AddSlice.",
+      "story": "An editor adds a new step to the board so a missing piece of the app can be described. Rules: the same AddSlice command as derived slices; a slice added by hand gives its sliceId, name, pattern, screenId and afterSliceId, and leaves featureId, produces, reads and the names empty (they're filled in later by editing). Its position is one after afterSliceId, or last when afterSliceId is empty. AddSlice for a slice id that already exists records nothing. A project that doesn't exist or was deleted gives \"That project doesn't exist.\" The same rules apply when the create-derived-slices automation sends AddSlice. Safety net: a project can hold up to the EMBERLINE_MAX_SLICES setting (default 2,000 slices). It's a guard against runaway automations and bugs, not a working limit. At the ceiling, AddSlice refuses: \"This project has 2,000 slices, the most allowed. Ask your admin to raise the limit.\"",
       "uiElement": "+ Add slice button",
       "command": {
         "name": "AddSlice",
@@ -6700,17 +6744,6 @@
           ]
         },
         {
-          "kind": "error",
-          "title": "Board is at the 150 slice limit",
-          "given": [
-            "ModelDerived(sliceCount: 150)"
-          ],
-          "when": "AddSlice(sliceId: s-new, projectId: p-1, name: One more)",
-          "then": [
-            "error: This board has 150 slices, the most it can hold. Split the work into features or another project."
-          ]
-        },
-        {
           "kind": "edge",
           "title": "First slice on an empty board",
           "given": [],
@@ -6726,6 +6759,18 @@
           "when": "AddSlice(projectId: p-404, …)",
           "then": [
             "error: That project doesn't exist."
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Project at the safety limit",
+          "given": [
+            "the project has 2,000 slices",
+            "EMBERLINE_MAX_SLICES = 2000"
+          ],
+          "when": "AddSlice(sliceId: s-new, projectId: p-1, name: One more, pattern: state_change)",
+          "then": [
+            "error: This project has 2,000 slices, the most allowed. Ask your admin to raise the limit."
           ]
         }
       ]
@@ -12541,7 +12586,7 @@
       "feature": "f-specs",
       "screen": "slice-page",
       "actor": "Editor",
-      "story": "An editor copies a slice to reuse it as the starting point for a similar one.",
+      "story": "An editor copies a slice to reuse it as the starting point for a similar one. Safety net: a project can hold up to the EMBERLINE_MAX_SLICES setting (default 2,000 slices). It's a guard against runaway automations and bugs, not a working limit. At the ceiling, AddSlice refuses: \"This project has 2,000 slices, the most allowed. Ask your admin to raise the limit.\"",
       "uiElement": "Duplicate button",
       "command": {
         "name": "DuplicateSlice",
@@ -12587,17 +12632,6 @@
           ]
         },
         {
-          "kind": "error",
-          "title": "Slice limit reached",
-          "given": [
-            "SliceAdded × 150"
-          ],
-          "when": "DuplicateSlice(sliceId: s-1, newSliceId: s-151)",
-          "then": [
-            "error: This board has 150 slices, the most it can hold. Split the work into features or another project."
-          ]
-        },
-        {
           "kind": "edge",
           "title": "Duplicate twice",
           "given": [
@@ -12607,6 +12641,18 @@
           "when": "DuplicateSlice(sliceId: s-1, newSliceId: s-3)",
           "then": [
             "SliceDuplicated(sliceId: s-3, sourceSliceId: s-1, position: 2)"
+          ]
+        },
+        {
+          "kind": "error",
+          "title": "Project at the safety limit",
+          "given": [
+            "the project has 2,000 slices",
+            "EMBERLINE_MAX_SLICES = 2000"
+          ],
+          "when": "DuplicateSlice(sliceId: s-1, newSliceId: s-2001)",
+          "then": [
+            "error: This project has 2,000 slices, the most allowed. Ask your admin to raise the limit."
           ]
         }
       ]
@@ -17602,7 +17648,8 @@
           "sliceCount: integer",
           "scenarioCount: integer",
           "status: enum(planned|in_progress|done)",
-          "features: list"
+          "features: list",
+          "largeBoard: boolean"
         ],
         "column": 42,
         "step": 43,
