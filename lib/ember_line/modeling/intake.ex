@@ -79,6 +79,9 @@ defmodule EmberLine.Modeling.Intake do
     }
   end
 
+  @doc "Whether a usable file is a screenshot (rather than HTML)."
+  def screenshot?(name), do: String.starts_with?(Map.get(@types, extension(name), ""), "image/")
+
   @doc "The board's note naming the ignored files."
   def ignored_note([]), do: nil
 

@@ -328,4 +328,24 @@
   .ui-offscreen iframe { width: 1280px; height: 900px; border: 0; }
   /* undo-split: Undo split beside the split sentence (prototype.css .split-actions) */
   .ui-split-actions { display: inline-flex; gap: 6px; flex-wrap: wrap; margin-left: 6px; vertical-align: middle; }
+  /* view-intake: the prototype's screens as tabs (prototype.css .screen-band, .screen-tabs, .screen-frame, .screen-view).
+     The summary beside it belongs to other slices. */
+  .ui-screen-band { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .ui-screen-band { grid-template-columns: 1fr; } }
+  .ui-screen-col { display: grid; gap: 8px; min-width: 0; }
+  .ui-screen-tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px; }
+  .ui-screen-tabs button { flex: none; border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 7px; padding: 4px 9px;
+    font-size: 12px; font-weight: 600; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-shadow: var(--shadow-sm); cursor: pointer; }
+  .ui-screen-tabs button[aria-selected="true"] { background: var(--fg); color: var(--surface); border-color: var(--fg); }
+  .ui-screen-frame { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm); }
+  .ui-screen-frame .bar { display: flex; gap: 6px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line); background: var(--surface-2);
+    font-size: 11px; color: var(--muted); font-family: var(--font-mono); min-width: 0; }
+  .ui-screen-frame .bar i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--line); display: inline-block; }
+  .ui-screen-frame .bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* White like a browser page: prototypes draw on their own canvas, in either theme. */
+  .ui-screen-view { max-height: 360px; overflow: auto; background: #fff; }
+  .ui-screen-view img { display: block; width: 100%; }
+  .ui-screen-view iframe { display: block; width: 100%; height: 420px; border: 0; background: #fff; }
+  .ui-screen-view:has(iframe) { max-height: none; overflow: hidden; }
+  .ui-nomatch { display: grid; place-items: center; min-height: 160px; padding: 16px; text-align: center; color: var(--muted); font-size: 12.5px; background: var(--surface-2); }
 }
